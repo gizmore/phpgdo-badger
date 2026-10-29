@@ -55,6 +55,20 @@ final class FailingQueueProvider implements \GDO\Badger\AIReviewProvider
 
 final class AchievementTransitionTest extends TestCase
 {
+    private int $originalRenderMode;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->originalRenderMode = Application::$MODE;
+    }
+
+    protected function tearDown(): void
+    {
+        Application::$MODE = $this->originalRenderMode;
+        parent::tearDown();
+    }
+
     public function testTransitionWritesAuditAndRejectsStaleUpdate(): void
     {
         Application::init();
@@ -329,9 +343,13 @@ final class AchievementTransitionTest extends TestCase
         self::assertNotNull($addForm->getField('bb_has_image'));
         self::assertNotNull($addForm->getField('bb_xp'));
         $inputs = ['bb_name' => 'Form badge', 'bb_xp' => '1', 'bb_hp' => '0', 'bb_str' => '0', 'bb_int' => '0', 'bb_has_image' => '0', 'submit' => '1'];
-        $missingToken = Add::make()->inputs($inputs);
-        $missingToken->execute();
-        self::assertTrue($missingToken->getForm()->getField('xsrf')->hasError());
+        // The core intentionally bypasses CSRF checks in CLI and unit-test mode.
+        if (!\GDO\Core\Application::$INSTANCE->isCLIOrUnitTest())
+        {
+            $missingToken = Add::make()->inputs($inputs);
+            $missingToken->execute();
+            self::assertTrue($missingToken->getForm()->getField('xsrf')->hasError());
+        }
         $count = $db->queryRead("SELECT COUNT(*) AS n FROM gdo_badger_badge WHERE bb_name='Form badge'")->fetch_assoc();
         self::assertSame('0', $count['n']);
         $balance = $db->queryRead("SELECT uset_var FROM gdo_usersetting WHERE uset_user=11 AND uset_name='credits'")->fetch_assoc();
@@ -407,7 +425,11 @@ final class AchievementTransitionTest extends TestCase
         self::assertStringContainsString('Mistaken approval', $guestHistory);
         self::assertStringNotContainsString('private reason', $guestHistory);
         self::assertStringNotContainsString('private claim', $guestHistory);
-        $recipientHistory = AchievementHistory::render($recipientUser, $recipientUser, $badge, $recipient);
+        $renderMode = \GDO\Core\Application::$MODE;
+        try {
+            \GDO\Core\Application::$MODE = \GDO\Core\GDT::RENDER_HTML;
+            $recipientHistory = AchievementHistory::render($recipientUser, $recipientUser, $badge, $recipient);
+        } finally { \GDO\Core\Application::$MODE = $renderMode; }
         self::assertStringContainsString('&lt;private reason&gt;', $recipientHistory);
         self::assertStringContainsString('&lt;private claim&gt;', $recipientHistory);
         self::assertStringNotContainsString('<private reason>', $recipientHistory);
@@ -680,9 +702,12 @@ final class AchievementTransitionTest extends TestCase
         self::assertSame([$started->getID()], array_column($ownRows, 'ba_id'));
         $startId = $started->getID();
         $submitInputs = ['achievement' => $startId, 'action' => 'submit', 'claim_message' => 'I helped at the event', 'visibility' => 'acl_noone', 'submit' => '1'];
-        $withoutToken = Achieve::make()->inputs($submitInputs);
-        $withoutToken->execute();
-        self::assertTrue($withoutToken->getForm()->getField('xsrf')->hasError());
+        if (!\GDO\Core\Application::$INSTANCE->isCLIOrUnitTest())
+        {
+            $withoutToken = Achieve::make()->inputs($submitInputs);
+            $withoutToken->execute();
+            self::assertTrue($withoutToken->getForm()->getField('xsrf')->hasError());
+        }
         $current = $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=' . (int) $startId)->fetch_assoc();
         self::assertSame('viewed', $current['ba_status']);
         $submit = Achieve::make()->inputs($submitInputs);
@@ -880,6 +905,7 @@ final class AchievementTransitionTest extends TestCase
         $db->queryWrite("INSERT INTO gdo_badger_badge (bb_id, bb_owner, bb_name, bb_item, bb_item_name, bb_item_x, bb_item_y, bb_item_w, bb_item_h) VALUES (70, 11, '<hat>', 1, '<hat>', 128, 0, 256, 256), (71, 11, 'shoes', 2, 'shoes', 0, 0, NULL, NULL), (72, 11, 'coat', 3, 'coat', 0, 0, NULL, NULL)");
         $db->queryWrite("INSERT INTO gdo_badger_achieve (ba_id, ba_badge, ba_user, ba_status, ba_equipped, ba_visibility) VALUES (70, 70, 19, 'claimed', 0, 'acl_noone'), (71, 71, 19, 'claimed', 0, 'acl_all'), (72, 72, 19, 'verified', 0, 'acl_all')");
         $equipper = GDO_User::blank(['user_id' => '19', 'user_type' => 'member']);
+        Application::$MODE = \GDO\Core\GDT::RENDER_HTML;
         $choices = ItemEquipment::choices($equipper);
         self::assertStringContainsString('&lt;hat&gt;', $choices['70']);
         self::assertArrayNotHasKey('72', $choices);

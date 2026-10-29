@@ -99,7 +99,11 @@ final class BadgerSchemaTest extends TestCase
     {
         $badge = GDO_Badge::blank(['bb_name' => '<badge>']);
         $achievement = GDO_Achieve::blank(['ba_status' => 'pending']);
-        $summary = Achieve::summary($badge, $achievement);
+        $mode = \GDO\Core\Application::$MODE;
+        try {
+            \GDO\Core\Application::$MODE = \GDO\Core\GDT::RENDER_HTML;
+            $summary = Achieve::summary($badge, $achievement);
+        } finally { \GDO\Core\Application::$MODE = $mode; }
         self::assertStringContainsString('&lt;badge&gt;', $summary);
         self::assertStringNotContainsString('<badge>', $summary);
     }
@@ -133,7 +137,11 @@ final class BadgerSchemaTest extends TestCase
         $root = GDO_Category::blank(['bc_id' => '1', 'bc_name' => '<Root>']);
         $child = GDO_Category::blank(['bc_id' => '2', 'bc_parent' => '1', 'bc_name' => 'Child']);
         $badge = GDO_Badge::blank(['bb_name' => 'Badge <1>', 'bb_category' => '2']);
-        $tree = GDT_BadgeTree::make()->categories([$root, $child])->badges([$badge])->renderHTML();
+        $mode = \GDO\Core\Application::$MODE;
+        try {
+            \GDO\Core\Application::$MODE = \GDO\Core\GDT::RENDER_HTML;
+            $tree = GDT_BadgeTree::make()->categories([$root, $child])->badges([$badge])->renderHTML();
+        } finally { \GDO\Core\Application::$MODE = $mode; }
         self::assertStringContainsString('&lt;Root&gt;<ul><li>Child<ul><li>Badge &lt;1&gt;</li></ul></li></ul>', $tree);
         self::assertStringNotContainsString('<Root>', $tree);
     }
