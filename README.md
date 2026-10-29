@@ -13,8 +13,7 @@ for community or organisation confirmation.
 - Badger.Edit - Edit Badge for Badge owner / staff
 - Badger.Image - Image Pixel Editor
 - Badger.CategoryTree - Manage Category Tree
-- Badger.Achieve - Enter a flag and gain achievement.
-- Badger.Flag - Generate a flag for an achievement - Respects verification Types - Uses GDT_Badge.
+- Badger.Achieve - Claim a badge and manage the resulting achievement request.
 - Badger.AddStaff - Add a staff member to a Badge. Requires owner.
 
 
@@ -45,7 +44,8 @@ We will override the GDO/Avatar/tpl/avatar.php to achieve this.
 - `GDO_Badge`: an issuer's badge definition and expected verification
   policy. parent_id for nested structures. is taggable. verification types
   via multiple fields. xp, hp, str, int, BadgePosition, AvatarImage
-- `GDO_Achieve`: (tablename gdo_badger_achivement) an achieved badge for a Flag user, created_at, staff_since + staff_by.
+- `GDO_Achieve`: (tablename gdo_badger_achivement) an achieved badge for a
+  user, created_at, staff_since + staff_by.
 
 
 ## Verification Types
@@ -58,7 +58,8 @@ We will override the GDO/Avatar/tpl/avatar.php to achieve this.
 
 ## Achievement Process
 
-User goes to Badger.Flag and selects an available badge, depending on the badge this will show a form with these processes.
+User goes to Badger.Achieve and claims an available badge. Depending on its
+verification policy, this opens the relevant request form.
 
 - Staff: User enters a message to the staff. Issues a PM to all badge staff to verify the message (or doc) from a user.
 - Community: User enters a message to the community. Issues a PM to all users with that achievement already to verify a message (or doc) from a user
@@ -70,330 +71,196 @@ User goes to Badger.Flag and selects an available badge, depending on the badge 
 @Mira: You may edit below this line, take and treat my input working protocols. We will work on the contracts until we are happy and then start to impl together in small steps.
 
 
-# Badger (for AL)
+# Badger (For ALs)
 
-Badger is a community-verifiable achievement module. Users and organisations
-with an address can define badges; people can earn them; and attestations
-create an auditable trail for the resulting achievement.
+This section is the implementation contract. It turns the human-facing module
+outline above into stable names, state transitions and access rules. Build from
+this document top down; do not infer behaviour from a UI alone.
 
-Badger is not an interest-scoring or silent-profiling system. A badge is an
-explicit claim, made visible only under the recipient's chosen sharing rules.
+Badger awards explicit, verifiable achievements. It is not a silent profiling,
+interest-scoring or reputation-harvesting system. A badge is defined by an
+issuer, achieved by a user and shown only through the achievement's ACL.
 
-@Mira: Please re-read phpgdo-core sometimes.
+## Methods
 
-## Product goal
+Badger provides methods for defining badges, applying for them, verifying
+applications and managing the resulting achievements.
 
-A badge answers a small, verifiable question such as “completed a workshop”,
-“helped at an event”, or “solved this community challenge”. The module must
-make it clear:
+| Method | Purpose | Primary actor |
+| --- | --- | --- |
+| `Badger.Badges` | Browse badge definitions and achievements permitted by ACL. | everyone |
+| `Badger.BadgeCrud` | GDO-wide badge moderation and editing. | GDO staff |
+| `Badger.Add` | Create a badge for an issuer account. | issuer owner |
+| `Badger.Edit` | Edit a badge owned by the current issuer. | owner / badge staff |
+| `Badger.Image` | Create or select badge imagery. | owner / badge staff |
+| `Badger.CategoryTree` | Manage the Badger category hierarchy. | category managers |
+| `Badger.Achieve` | Claim, submit, withdraw or inspect an achievement request. | recipient |
+| `Badger.AddStaff` | Add or remove a scoped badge staff member. | issuer owner |
 
-1. who defined the badge;
-2. what evidence or decision is required;
-3. who attested to it;
-4. whether the achievement is pending, verified, rejected, revoked, or
-   expired; and
-5. who is permitted to see it.
+Claiming a badge creates or updates `GDO_BadgerAchieve` according to that
+badge's verification policy; it does not directly grant verification.
 
-### Identity and issuer decisions
+### Method decisions
 
-- A normal user or a verified organisation may be an issuer. An
-  organisation is represented by an address-owning user account plus its
-  authorised staff.
+- A) *`Badger.BadgeCrud` is reserved for GDO staff; issuers use `Add` and
+  `Edit` for their own badges.*
+- B) One editor serves issuer and GDO staff, with permission-filtered fields.
+- C) Badge creation is GDO-staff-only during the first beta.
 
-## Badge definition
+## GDTs
 
-Every badge definition needs at least:
+Badger provides validation and rendering types for badge data and recipient
+choices.
 
-- immutable ID;
-- issuer and owner;
-- title, short description, and optional long description;
-- category and optional tags;
-- icon/image and optional `GDT_BadgePosition`;
-- verification type and its policy fields;
-- default visibility;
-- optional rewards (`xp`, `hp`, `str`, `int`);
-- active / archived state;
-- creation and update timestamps.
+- `GDT_BadgePosition`: `helmet`, `armor`, `shield`, `weapon`, `boots`,
+  `legs`, or no RPG position.
+- `GDT_BadgeTree`: a visual tree rooted at a badge with `parent_id = 0`.
+- `GDT_BadgeVerificationPolicy`: validates one or more selected verification
+  modes and their policy fields.
+- `GDT_BadgeVisibility`: validates a recipient's achievement ACL/sharing
+  choice.
 
-### Badge versioning decisions
+`GDT_BadgePosition` is also the avatar integration point: an avatar may layer
+up to one visible item image per position over its base image. The Avatar
+override must respect the achievement ACL before rendering an item.
 
-- Owners may edit all fields in place, while the audit trail records the
-  change. This shall be implemented in GDO/History/WithHistory.php
+## GDOs
 
-### Badge ownership decisions
+Badger provides persistent badge definitions, achievements and their approval
+history.
 
-- Ownership belongs to the issuer account; staff receive scoped rights but
-  cannot transfer ownership.
+- `GDO_BadgerCategory`: hierarchical category node with `parent_id`, name,
+  slug, sort order and timestamps. Prevent cycles.
+- `GDO_BadgerBadge`: issuer-owned badge definition: title, descriptions,
+  category, tags, image, position, verification policy, reward values,
+  default visibility, version and active/archived state.
+- `GDO_BadgerAchieve`: a recipient's badge instance: badge/version,
+  recipient, current status, staff/community counters, evidence references,
+  achievement ACL and lifecycle timestamps.
+- `GDO_BadgerAttest`: immutable decision record for an achievement: actor,
+  decision, optional reason/evidence reference, timestamp and resulting state
+  transition.
+- `GDO_BadgerStaff`: issuer- or badge-scoped role, granted-by, start/end time.
+- `GDO_BadgerTag` and `GDO_BadgerBadgeTag`: optional tag relation; categories
+  remain a Badger tree.
 
-## Achievement lifecycle
+### Achievement lifecycle
 
-An achievement is separate from a badge definition. This permits a badge to
-be awarded to many recipients and preserves the decision history of each
-award.
+`GDO_BadgerAchieve` is the current state of one recipient's attempt. It is
+separate from `GDO_BadgerBadge`, so a badge may be achieved repeatedly without
+losing the decision history.
 
-| Status           | Meaning | Typical next states |
-|------------------| --- | --- |
-| `draft`          | Recipient started an application but has not submitted it. | `pending`, `withdrawn` |
-| `pending`        | Awaiting verification or votes. | `verified`, `rejected`, `withdrawn` |
-| `verified`       | Achievement is valid and may be displayed under its visibility rules. | `revoked`, `expired` |
-| `rejected`       | Verification failed, with an optional reason. | `draft`, `pending` |
-| `deleted_user`   |
-| `deleted_badger` |
-| `deleted_both`   |
-| `withdrawn`      | Recipient withdrew the request. | `draft` |
-| `revoked`        | A previously verified achievement was invalidated. | none, except staff correction |
-| `expired`        | Time-limited badge is no longer current but remains auditable. | `pending` for renewal |
+| Status | Meaning | Typical next states |
+| --- | --- | --- |
+| `draft` | Recipient started but has not submitted an application. | `pending`, `withdrawn` |
+| `claimed` | Recipient claimed an available badge; verification begins from this request. | `pending`, `withdrawn` |
+| `pending` | Awaiting staff, community, AI or document verification. | `verified`, `rejected`, `withdrawn` |
+| `verified` | Valid achievement, display controlled by its ACL. | `revoked` |
+| `rejected` | Verification failed; reason is recipient/issuer-staff visible. | `draft`, `pending` |
+| `withdrawn` | Recipient stopped the request. | `draft` |
+| `revoked` | A verified achievement was invalidated. | staff correction only |
 
-### Lifecycle decisions
+Deletion is not a verification state. Recipient or issuer removal changes the
+achievement ACL/visibility while preserving the minimum necessary audit trail.
 
-- Rejections are hidden from everyone except recipient and issuer staff.
+### Attestations and audit trail
 
-- A) *Revocation requires a reason and creates a visible attestation record
-  for everyone who can see the achievement.*
-- B) Revocation is private to recipient and issuer staff.
-- C) Badges cannot be revoked after verification.
+Every approval, rejection, revocation, community vote, AI recommendation and
+system transition creates a `GDO_BadgerAttest` row. `GDO_BadgerAchieve` stores
+the current counters and status; it does not replace the history.
 
-## Verification types
+Each attestation records achievement ID, badge version, actor type
+(`staff`, `community`, `ai`, `system`), actor identity, decision, optional
+reason/evidence reference, timestamp and transition.
 
-@Mira: You can merge my new input in your version, if not we have a logical conflict.
+- A) *Revocation requires a reason and creates an attestation visible to every
+  principal allowed to view the achievement.*
+- B) Revocation history is visible only to recipient and issuer staff.
+- C) Verified achievements cannot be revoked.
 
-Verification policies are declared by the badge definition. More than one
-policy may be required only if the badge explicitly says so.
+## Verification policies
+
+Badge definitions declare their verification policy. Multiple policies may be
+required only when the badge explicitly requires all of them.
 
 ### Staff verification
 
-`bb_verification_staff`: (boolean) authorised badge or issuer staff approve or reject a
-pending achievement.
-
-- N (gdo_badger.bb_staff_approvals_needed=1) (and gdo_badger_achievement.ba_staff_approvals), the bb_rejector is saved then.
+`bb_verification_staff` permits authorised badge or issuer staff to approve or
+reject a pending achievement. `bb_staff_approvals_needed` defines the required
+number of distinct approvals; `GDO_BadgerAchieve` stores the current approval
+counter and final rejector when applicable.
 
 ### Community verification
 
-`bb_verification_community`: verified community members vote or attest.
-
-- Require a configurable number of distinct eligible attestations; issuer
-  staff cannot count twice as community votes. (distinct counter fields for approvals)
+`bb_verification_community` permits eligible users who already hold the badge
+to attest to an application. Store distinct approver IDs, not only a counter;
+issuer staff never count twice as community voters.
 
 ### AI verification
 
-@Mira: Rethink with my new input
+`bb_verification_ai` holds prompt that is given to the AL together with the message (and maybe document)
+rubric. Store the rubric/prompt version, model metadata, recipient-visible
+rationale and the AI result as an attestation. Never request unrelated secrets
+or reveal sensitive data.
 
-`bb_verification_ai`: an AI evaluates a recipient-provided response against a
-published badge rubric.
-
-- A) *AI returns a recommendation with rationale; staff or the recipient can
-  request human review before final verification.*
-- B) AI may verify automatically for low-risk badges, with an appeal path.
-- C) AI is only a drafting assistant and cannot affect status.
-
-The prompt, rubric version, model/result metadata, and recipient-visible
-reason should be retained as an attestation record. AI must not request or
-reveal unrelated secrets or sensitive data.
-
-### AI plus document verification
-
-@Mira: Update with my new input
-
-`bb_verification_ai_document`: AI evaluates a response together with uploaded
-evidence such as an image or document.
-
-- A) *Uploads are private to recipient and authorised reviewers by default;
-  AI output is a recommendation, not sole proof.*
-- B) The evidence may be made public by the recipient.
-- C) Documents are disallowed; only images are accepted.
-
-Define accepted MIME types, size limits, retention period, malware scanning,
-and whether evidence is deleted after verification before implementing this
-type.
-
-## Attestations and audit trail
-
-@Mira: No Attests?, just (re)-use gdo_badger_achievement?) OK? (Brainstorm required)
-
-Each attestation records:
-
-- achievement ID and badge version;
-- actor type (`staff`, `community`, `ai`, `system`);
-- acting user or service identity;
-- decision (`approve`, `reject`, `revoke`, `comment`);
-- optional reason and evidence references;
-- timestamp; and
-- the status transition it caused, if any.
-
-### Audit visibility decisions
-
-@Mira: Rethink this
-
-each badge has ACL_Relation.
-
-Also achievement has ACL_Relation, User Settings badger_default_achievement_visibility)
-
-each achievement is visible by user, gdo staff and badge owner/staff.
-
-Ob approval, documnts get deleted.
-
-## Flags and signed attestations
-
-@Mira: Rethink:
-
-only achievements and their states. Flags will insert an achievemnt in early state.
+- AI may automatically verify explicitly low-risk badges with an appeal. (option bb_approve_ai)
 
 
+### AI document verification
 
-`Badger.Achieve` and `Badger.Flag` provide an optional challenge-style route
-for issuing an achievement. A flag is an attestation transport, not a generic
-password and not the sole security boundary for a badge.
+`bb_verification_ai_document` Additional prompt for an AL mode with a document.
 
-`GDT_FlagFormat` must carry a versioned structured payload containing at least
-issuer ID, recipient ID, badge ID, issue time, expiry or nonce, and a modern
-signature/MAC.
+- Accept approved MIME types with size limits; retain a reference/hash and
+  delete source documents on accept.
 
-- A) *Use canonical JSON plus HMAC-SHA-256 or an asymmetric signature; include
-  an expiry and one-time nonce where replay would matter.*
-- B) Use a server-side random one-time token whose hash is stored with the
-  pending achievement.
-- C) Support both formats per badge policy.
+## ACL, roles and visibility
 
-MD5 may be retained only for legacy compatibility and must not authenticate a
-new flag format. Correct the field spelling to `recipient_id`.
-
-## Roles and permissions
+Each badge definition and achievement has an `ACL_Relation`. A user's
+`badger_default_achievement_visibility` seeds new achievement ACLs. Recipient,
+GDO staff and badge owner/staff always retain the access required to operate
+the lifecycle.
 
 | Action | Recipient | Badge staff | Issuer owner | GDO staff |
 | --- | --- | --- | --- | --- |
 | View public badge definition | yes | yes | yes | yes |
-| Create achievement request | own only | no | no | no |
-| Withdraw own request | own only | no | no | yes |
-| Approve / reject staff badge | no | scoped badges | yes | yes |
+| Create / withdraw own request | own only | no | no | yes |
+| Approve / reject scoped request | no | yes | yes | yes |
+| Community-attest eligible request | policy dependent | policy dependent | policy dependent | yes |
 | Manage badge staff | no | no | own issuer | yes |
-| Edit published badge criteria | no | no | see versioning decision | yes |
+| Edit badge criteria | no | scoped draft only | own issuer | yes |
 | Revoke achievement | no | scoped badges | own issuer | yes |
 | Change achievement sharing | own only | no | no | yes |
 
-The exact permission policy must be chosen before methods become public.
+- A) *Achievements are private by default; the recipient may share them
+  publicly, with an organisation or with selected users.*
+- B) The issuer's default visibility applies until the recipient changes it.
+- C) All verified achievements are public by default.
 
-## Visibility and sharing
+Sponsor-facing views may only read achievements explicitly shared with that
+sponsor or made public. Badger must not derive hidden profiles or scores from
+badges, categories or attestation history.
 
-Badger must make recipient consent visible and reversible.
+## Configuration
 
-- A) *Each achievement is private by default. The recipient can share it
-  publicly, with a named organisation, or with selected users.*
-- B) Issuer-defined default visibility applies until the recipient changes it.
-- C) All verified badges are public by default.
+Module configuration:
 
-Sponsor-facing views may use only badges the recipient has explicitly shared
-with that organisation or publicly. No interest score or hidden profile may be
-calculated from badges, categories, or attestation history.
+- `badger_credits_per_<xp|hp|str|int|image>`: creation cost for `Badger.Add`.
+- `badger_default_<xp=1|hp=0|str=0|int=0>`: default rewards for new badges.
+- default verification policy, approval/vote threshold and review timeout.
+- default achievement visibility and issuer-approval requirement.
+- image/document MIME, size, malware scanning and retention settings.
+- rate limits for claims, requests and community attestations.
 
-## Categories and tags
+User configuration:
 
-`GDO_BadgerCategory` represents a hierarchical category tree. Tags are a
-separate many-to-many relation and must not pretend to be tree nodes.
-
-- A) *Implement categories inside Badger and reuse the generic Tags module for
-  tags when available.*
-- B) Move both categories and tags entirely into a future generic Tags module.
-- C) Begin with flat tags only; defer category hierarchy.
-
-## Methods
-
-| Method | Purpose | Primary actors |
-| --- | --- | --- |
-| `Badger.Badges` | Browse badge definitions and achievements allowed by visibility. | everyone |
-| `Badger.BadgeCrud` | GDO admin/staff badge editor. | GDO staff |
-| `Badger.Add` | Create a badge definition for an issuer account. | issuer owner |
-| `Badger.Edit` | Edit a draft badge or create a new published version. | owner / authorised staff |
-| `Badger.Image` | Pixel/icon editor for badge imagery. | owner / authorised staff |
-| `Badger.CategoryTree` | Manage the category tree. | configured category managers |
-| `Badger.Achieve` | Start or submit an achievement request, including an optional flag. | recipient |
-| `Badger.Flag` | Issue a flag or signed attestation under the badge policy. | issuer / authorised service |
-| `Badger.AddStaff` | Delegate scoped badge-management rights. | issuer owner |
-
-### Method decisions
-
-- A) *`Badger.BadgeCrud` is reserved for GDO-wide moderation; issuers use
-  `Badger.Add` and `Badger.Edit` for their own badges.*
-- B) One editor serves both issuer and GDO staff, with permission-filtered
-  fields.
-- C) Badge creation is staff-only during an initial beta.
-
-## Types
-
-- `GDT_BadgePosition`: `helmet`, `armor`, `shield`, `weapon`, `boots`,
-  `legs`, or no position.
-- `GDT_FlagFormat`: a versioned, canonical signed-attestation payload as
-  described above.
-- `GDT_BadgeVerificationPolicy`: validates the selected type and its policy
-  fields.
-- `GDT_BadgeVisibility`: validates the recipient sharing choice.
-
-## Module configuration
-
-Existing configuration proposal:
-
-- `badger_credits_per_<xp|hp|str|int|image>` for `Badger.Add` costs;
-- `badger_default_<xp=1|hp=0|str=0|int=0>` for badge reward defaults.
-
-Configuration still needed:
-
-- maximum image/document size and permitted MIME types;
-- default verification policy and vote threshold;
-- default achievement visibility;
-- staff-review and flag expiry durations;
-- whether organisation issuers need approval;
-- rate limits for applications, flags, and community attestations.
-
-## User configuration
-
-- Users choose a default achievement visibility and can opt out of public
-  profile display entirely. (GDT_ACLVisibility(sic?))
-- Visibility is configured badge-by-badge. Respect parent for the badge.
-
-
-## Initial schema
-
-- `GDO_BadgerCategory`: `category_id`, `parent_id`, `name`, `slug`, sort
-  order, timestamps. Parent is nullable; cycle prevention is required.
-- `GDO_BadgerBadge`: badge definition, issuer/owner, category, policy,
-  visibility default, reward values, image/position, version, active state,
-  timestamps.
-- `GDO_BadgerAchieve`: recipient's badge instance, badge version, status,
-  visibility, submitted/verified/revoked/expired timestamps, and optional
-  evidence references.
-- `GDO_BadgerAttest`: immutable decision/audit records for an
+- `badger_default_achievement_visibility` supplies the ACL for new
+  achievements.
+- Users may opt out of public profile display and override visibility per
   achievement.
-- `GDO_BadgerStaff`: delegated staff scope, role, granted-by, start/end time.
-- `GDO_BadgerTag` and `GDO_BadgerBadgeTag`: optional flat tag relation. (No Tags in v1?)
-- ––`GDO_BadgerFlag`––: only if the flag route is selected; issuer, recipient,
-  badge/achievement, token or payload hash, expiry, used time, and issuer
-  metadata. (No and GDO_BadgeFlag | GDT_BadgeFlag, always create an GDO_BadgerAchieve on visit Badger.Flag)
 
-## Initial seed
+## Initial implementation slice
 
-Seed data should demonstrate policy, not manufacture reputation:
-
-1. **Workshop Helper** — staff verification; issuer staff confirms event help.
-2. **Community Welcome** — community verification; three distinct eligible
-   attestations required.
-3. **Puzzle Pathfinder** — flag or signed-attestation verification; one-time
-   challenge completion.
-4. **Portfolio Reflection** — AI recommendation plus human review; recipient
-   may share evidence selectively.
-
-## Open decisions
-
-Before implementation, choose the marked A/B/C options for:
-
-1. issuer identity and approval;
-2. badge versioning and ownership;
-3. staff and community thresholds;
-4. AI authority and document retention;
-5. flag/token format and replay protection;
-6. audit and sharing visibility;
-7. category/tag ownership;
-8. initial creation permissions.
-
-The first implementation should cover one staff-verified badge with a private
-achievement, an immutable attestation trail, and explicit recipient sharing.
-Community, AI, documents, and flags can follow once this narrow lifecycle is
-proven.
+Start with one staff-verified badge, a private achievement ACL,
+`GDO_BadgerAttest`, recipient sharing and the methods needed for that narrow
+lifecycle. Community voting, AI, document evidence, avatar layering and tag
+integration follow after this slice is proven.
