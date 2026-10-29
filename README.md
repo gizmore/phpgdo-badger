@@ -27,10 +27,11 @@ publicly or to selected people.
 - `Badger.CategoryTree` — manage badge categories.
 - `Badger.Achieve` — start, submit, withdraw, claim or acknowledge an achievement.
 - `Badger.AddStaff` — add badge staff; ownership remains with the owner.
+- `Badger.Rankings` — list badger users by xp, num achieves, etc.
 
 ## GDTs
 
-- `GDT_BadgeTree` — visual hierarchy of badges each rooted at `parent_id = 0`.
+- `GDT_BadgeTree` — visual hierarchy of badges each one rooted at `parent_id = 0`.
 
 ## GDOs
 
@@ -51,16 +52,29 @@ publicly or to selected people.
   `gdo_badger_achieve`; Core `GDT_Virtual` fields expose cosmetic aggregates,
   for example `SUM(bb_xp) GROUP BY ba_user`.
 
-- ba_equipped (see user config bb_max_equipped)
+- ba_equipped (see user config bb_add_max_equip)
 - ba_staff (user is marked as staff this way)
 - ba_status (see in AL section)
 
 ## Avatars
 
 An avatar may layer equipped earned badge images over its base image. The Avatar
-renderer must honour the achievement ACL before showing an item.
+renderer must not honour the achievement ACL before showing an item; the ACL is
+only for a user's profile achievement overview.
 
 Avatars shall zoom out and equip items in an animation.
+
+## Profile
+
+Add a hook for profile main content card GDTs.
+
+Add visible achievements with bb_icon display.
+
+## Pixel Editor
+
+Coming soon.
+
+In v1 we have upload with convert to gif and dimension GDT_Sizes
 
 ## Credits
 
@@ -73,12 +87,14 @@ Some configurations cannot be edited after you add a badge (xp,hp,str,int,has_im
 Each Achievement adds to your xp, hp, str and int.
 Some badges come with an image, which you can equip for your avatar.
 
+A separate combat system, similar to SlapWars, is coming later. It is outside
+Badger v1; the current XP, HP, STR, INT and item values remain cosmetic.
 
 ## Module configuration
 
 - `bb_welcome_credits=200` – initial credits for a user.
 - `bb_credits_per_<badge=50|xp=50|hp=50|str=50|int=50|image=50>` — cost for `Badger.Add`.
-- `bb_default_<xp=1|hp=0|str=0|int=0>` — cosmetic defaults for a badge.
+- `bb_default_<xp=1|hp=0|str=0|int=0|max_equip=2>` — cosmetic defaults for a badge.
 - default staff/community approval thresholds and review timeout.
 - default achievement visibility and issuer-approval requirement.
 - permitted document MIME types, maximum size, malware scanning and retention.
@@ -90,8 +106,8 @@ Some badges come with an image, which you can equip for your avatar.
 
 Internal per user config.
 
-- `bb_max_equipped` (`GDT_Int`) — maximum number of extra equipped achievement
-  items for that user (credits to increase).
+- `bb_add_max_equip` (`GDT_Int`) — additional equipped-achievement capacity
+  purchased with credits.
 
 ## User settings
 
@@ -105,8 +121,9 @@ User can set this.
 
 This is the implementation contract. Build from it top down; do not infer
 workflow rules from a UI. Badger is not a silent profiling or reputation
-harvesting system: every badge is an explicit claim and every display is
-controlled by an ACL.
+harvesting system: every badge is an explicit claim and every achievement-
+overview display is controlled by an ACL. Equipped avatar items are the
+intentional exception.
 
 ## Methods
 
@@ -118,6 +135,7 @@ controlled by an ACL.
 | `Badger.Edit` | Edit a badge owned by the current issuer. | owner / badge staff |
 | `Badger.Image` | Create or select badge imagery. | owner / badge staff |
 | `Badger.Items` | Select and preview equipped avatar items. | recipient |
+| `Badger.Rankings` | List aggregate Badger totals per user. | everyone |
 | `Badger.CategoryTree` | Manage the Badger category hierarchy. | category managers |
 | `Badger.Achieve` | Start, submit, withdraw, inspect or acknowledge an award. | recipient |
 | `Badger.AddStaff` | Set or clear `ba_staff` on a scoped achievement. | issuer owner |
@@ -167,6 +185,25 @@ does not charge credits.
 Once a badge exists, its cosmetic `bb_<xp|hp|str|int>` values and whether it
 has an image/item cannot be changed. Text, category, verification settings and
 active state remain editable.
+
+`bb_default_<...|max_equip=2>` supplies the base equipped-item capacity.
+`bb_add_max_equip` is the user-owned additional capacity bought with credits;
+the total limit is their sum.
+
+### Rankings
+
+`Badger.Rankings` displays aggregate XP, HP, STR, INT and achievement counts
+for each user. It sums claimed, non-revoked achievements and deliberately does
+not reveal which badge or achievement supplied a value. Individual achievement
+ACLs therefore govern profile-overview details, not these source-free totals.
+
+### Profile and image integration
+
+Patch Core with the profile main-content card-GDT hook required by Badger. The
+card displays achievements permitted by the profile ACL using `bb_icon`.
+
+`Badger.Image` is upload-only in v1: it converts uploads to GIF and validates
+dimensions with `GDT_Sizes`. The pixel editor is a later feature.
 
 ## Achievement lifecycle
 
@@ -288,8 +325,8 @@ or made public. Badger must not derive hidden profiles or scores from badges,
 categories or attestation history.
 
 Avatar rendering zooms out and equips selected item images in an animation.
-It may equip no more than the user's `bb_max_equipped` achievements in total;
-credits may increase that user configuration.
+It does not consult individual achievement ACLs. It may equip no more than the
+module base capacity plus the user's `bb_add_max_equip` achievements in total.
 
 ## Initial implementation slice
 
