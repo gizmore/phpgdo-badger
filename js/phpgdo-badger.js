@@ -37,7 +37,10 @@
         document.querySelectorAll('.badger-price-preview').forEach(setup);
         if (window.jQuery && window.GDO && window.GDO.effects && window.GDO.effects.discoFlash) {
             document.querySelectorAll('.badger-faq-heading').forEach((heading) => {
-                window.GDO.effects.discoFlash(window.jQuery(heading), heading.dataset.themeColor);
+                const effects = window.GDO.effects;
+                effects.discoFlash(window.jQuery(heading), heading.dataset.themeColor).then(() => {
+                    if (effects.explode) effects.explode(window.jQuery(heading));
+                });
             });
         }
     };

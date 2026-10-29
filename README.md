@@ -260,7 +260,8 @@ price when the form is submitted.
 
 `Badger.FAQ` explains the basic badge and achievement workflow. Its heading
 uses the optional JQuery candle effect in the UI module's theme color; the page
-remains readable when effects or JavaScript are disabled.
+finishes with the optional text explosion and remains readable when effects or
+JavaScript are disabled.
 
 ## Badger RPG
 
