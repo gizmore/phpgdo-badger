@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace GDO\Badger;
 
-use GDO\Badgeg\install\BadgerInstall;
+use GDO\Badger\install\BadgerInstall;
 use GDO\Core\GDO_Module;
 
 final class Module_Badger extends GDO_Module

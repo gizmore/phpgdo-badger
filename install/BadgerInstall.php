@@ -1,5 +1,5 @@
 <?php
-namespace GDO\Badgeg\install;
+namespace GDO\Badger\install;
 
 use GDO\Avatar\GDO_Avatar;
 use GDO\Avatar\GDO_UserAvatar;

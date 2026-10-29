@@ -13,8 +13,8 @@ Badger lets a user account create badges such as “helped at an event”,
 the badge's staff, community or AL verification checks it, and the user sees
 the award animation and new cosmetic item when it succeeds.
 
-Achievements are private by default. The recipient decides whether to show one
-publicly or to selected people.
+The module configures the default achievement visibility. The recipient can
+change it using the available relationship-based ACL options.
 
 ## Methods
 
@@ -26,17 +26,17 @@ publicly or to selected people.
 - `Badger.Items` – Avatar item selector / preview
 - `Badger.CategoryTree` — manage badge categories.
 - `Badger.Achieve` — start, submit, withdraw, claim or acknowledge an achievement.
-- `Badger.AddStaff` — add badge staff; ownership remains with the owner.
+- `Badger.AddStaff` — add or remove badge staff; ownership remains with the owner.
 - `Badger.Rankings` — list badger users by xp, num achieves, etc.
 
 ## GDTs
 
-- `GDT_BadgeTree` — visual hierarchy of badges each one rooted at `parent_id = 0`.
+- `GDT_BadgeTree` — visual hierarchy of badges with a nullable root parent.
 
 ## GDOs
 
 `GDO_Badge` — one issuer-defined badge. Its physical table is named through
-  `gdo_table_name()` and therefore becomes `gdo_badger_badge`.
+  `gdoTableName()` and therefore becomes `gdo_badger_badge`.
 
 - bb_image GDT_ImageFile for badge overview background
 - bb_icon GDT_ImageFile for tables and profile
@@ -53,7 +53,7 @@ publicly or to selected people.
   for example `SUM(bb_xp) GROUP BY ba_user`.
 
 - ba_equipped (see user config bb_add_max_equip)
-- ba_staff (user is marked as staff this way)
+- ba_is_staff (user is marked as staff this way)
 - ba_status (see in AL section)
 
 ## Avatars
@@ -75,7 +75,7 @@ Add visible achievements with bb_icon display.
 Coming soon.
 
 In v1, uploads convert to GIF and dimensions are validated with Core
-`GDT_Length` fields.
+`GDT_Width` and `GDT_Height` fields, using positive whole pixels.
 
 ## Credits
 
@@ -97,7 +97,9 @@ Badger v1; the current XP, HP, STR, INT and item values remain cosmetic.
 - `bb_credits_per_<badge=50|xp=50|hp=50|str=50|int=50|image=50>` — cost for `Badger.Add`.
 - `bb_default_<xp=1|hp=0|str=0|int=0|max_equip=2>` — cosmetic defaults for a badge.
 - `bb_item_max_w` / `bb_item_max_h` — maximum width and height for an
-  uploaded avatar item; validated with Core `GDT_Length` fields.
+  uploaded avatar item in pixels; validated with `GDT_Width` and `GDT_Height`.
+- `bb_default_achieve_visibility=acl_all` (`GDT_ACLRelation`) — module default
+  for a user's initial achievement visibility setting; initially public.
 - default staff/community approval thresholds and review timeout.
 - default achievement visibility and issuer-approval requirement.
 - permitted document MIME types, maximum size, malware scanning and retention.
@@ -116,8 +118,8 @@ Internal per user config.
 
 User can set this.
 
-- `bb_default_achieve_visible=friends` (`GDT_ACLRelation`) — default ACL for a new
-  achievement.
+- `bb_default_achieve_visible` (`GDT_ACLRelation`) — default ACL for a new
+  achievement, initially set from `bb_default_achieve_visibility`.
 
 
 # Badger (For ALs)
@@ -125,7 +127,7 @@ User can set this.
 This is the implementation contract. Build from it top down; do not infer
 workflow rules from a UI. Badger is not a silent profiling or reputation
 harvesting system: every badge is an explicit claim and every achievement-
-overview display is controlled by an ACL. Equipped avatar items are the
+overview display is controlled by a relationship ACL. Equipped avatar items are the
 intentional exception.
 
 ## Methods
@@ -141,7 +143,7 @@ intentional exception.
 | `Badger.Rankings` | List aggregate Badger totals per user. | everyone |
 | `Badger.CategoryTree` | Manage the Badger category hierarchy. | category managers |
 | `Badger.Achieve` | Start, submit, withdraw, inspect or acknowledge an award. | recipient |
-| `Badger.AddStaff` | Set or clear `ba_staff` on a scoped achievement. | issuer owner |
+| `Badger.AddStaff` | Create or find a scoped achievement and set or clear `ba_is_staff`. | issuer owner |
 
 - A) *`Badger.BadgeCrud` is reserved for GDO staff; issuers use `Add` and
   `Edit` for their own badges.*
@@ -150,13 +152,13 @@ intentional exception.
 
 ## GDTs
 
-- `GDT_BadgeTree` renders a badge hierarchy rooted at `parent_id = 0`.
+- `GDT_BadgeTree` renders a badge hierarchy rooted at a null `parent_id`.
 - Core `GDT_Virtual` provides subquery-generated cosmetic aggregates on
   `GDO_Achieve`; Badger does not implement a separate RPG table.
 
 ## GDOs
 
-PHP classes use concise module-local names. `gdo_table_name()` supplies the
+PHP classes use concise module-local names. `gdoTableName()` supplies the
 module prefix, so no class name needs `Badger` embedded in it.
 
 - `GDO_Category` → `gdo_badger_category`: `parent_id`, name, slug, sort order
@@ -169,15 +171,19 @@ module prefix, so no class name needs `Badger` embedded in it.
   active/archived state. Badges are edited in place; there is no version field.
 - `GDO_Achieve` → `gdo_badger_achieve`: badge, recipient, verification status,
   deletion state, approval counters, evidence references, ACL, `ba_equipped`,
-  `ba_staff` and lifecycle timestamps. Core `GDT_Virtual` fields calculate
+  `ba_is_staff` and lifecycle timestamps. Core `GDT_Virtual` fields calculate
   `SUM(bb_<xp|hp|str|int>) GROUP BY ba_user` from claimed, non-revoked
   achievements.
 
 ### Owner and staff
 
-A badge belongs to one normal user account. `ba_staff` marks an achievement
-holder as badge staff. Owner and badge staff have almost identical operational
-permissions. Only the owner may transfer ownership or change `ba_staff`.
+A badge belongs to one normal user account. `ba_is_staff` marks the user on a
+badge's achievement as staff. `Badger.AddStaff` creates an achievement in an
+initial `viewed` state when needed, without granting a reward. Owner and badge
+staff have almost identical operational permissions. Only the owner may
+transfer ownership or change `ba_is_staff` through `Badger.AddStaff`. Revocation
+or deletion changes the achievement's status or deletion state, not its staff
+membership; use `Badger.AddStaff` to remove staff rights explicitly.
 
 ### Credits and immutable badge fields
 
@@ -206,7 +212,7 @@ Patch Core with the profile main-content card-GDT hook required by Badger. The
 card displays achievements permitted by the profile ACL using `bb_icon`.
 
 `Badger.Image` is upload-only in v1: it converts uploads to GIF and validates
-dimensions with Core `GDT_Length` fields against `bb_item_max_w` and
+dimensions in whole pixels with `GDT_Width` and `GDT_Height` against `bb_item_max_w` and
 `bb_item_max_h`. The pixel editor is a later feature.
 
 ## Achievement lifecycle
@@ -216,29 +222,30 @@ and its deletion state are independent.
 
 | Status | Meaning | Typical next states |
 | --- | --- | --- |
+| `viewed` | Initial, unsubmitted achievement record, including one created for staff. | `draft`, `pending` |
 | `draft` | Recipient started a form but has not submitted it. | `pending`, `withdrawn` |
 | `pending` | Submitted request awaiting staff, community, document or AL verification. | `verified`, `rejected`, `withdrawn` |
-| `verified` | Award is granted and virtual cosmetic values are available; recipient has not yet acknowledged it. | `claimed`, `revoked` |
+| `verified` | Award is approved; recipient has not yet acknowledged it and rewards do not yet count. | `claimed`, `revoked` |
 | `claimed` | Recipient saw the success message, animation and reward/item update. | `revoked` |
 | `rejected` | Verification failed; recipient and issuer staff can see the reason. | `draft`, `pending` |
 | `withdrawn` | Recipient stopped the request. | `draft` |
 | `revoked` | A verified or claimed achievement was invalidated. | staff correction only |
 
 `Badger.Achieve` changes `verified → claimed` only after the recipient has
-seen the award update. Cosmetic data becomes available at `verified`; `claimed`
-records that it was presented to the recipient.
+seen the award update. Cosmetic totals and equipment become available at
+`claimed`; the presentation may preview the award before the transition.
 
 ### Deletion state
 
-Deletion never replaces the verification status. `GDO_Achieve` stores one of
-these four states:
+An achievement is never physically deleted. Deletion never replaces its
+verification status; `GDO_Achieve` stores one of these four states:
 
 | Deletion state | Meaning |
 | --- | --- |
 | `not_deleted` | Neither side requested deletion. |
 | `deleted_badger` | Badge staff removed it from their active view; the recipient did not. |
 | `deleted_user` | Recipient removed it from their view; badge staff retain the record. |
-| `deleted_both` | Recipient and badge staff removed it; retain only the minimum audit data. |
+| `deleted_both` | Recipient and badge staff removed it from their views; the achievement record remains. |
 
 The deletion state changes the achievement ACL and evidence retention, while
 the original verification status remains auditable.
@@ -314,15 +321,15 @@ lifecycle and audit trail.
 | Approve / reject scoped request | no | yes | yes | yes |
 | Community-attest eligible request | policy dependent | policy dependent | policy dependent | yes |
 | Edit badge | no | yes | yes | yes |
-| Change `ba_staff` | no | no | yes | yes |
+| Change `ba_is_staff` | no | no | yes | yes |
 | Transfer badge ownership | no | no | yes | yes |
 | Revoke achievement | no | yes | yes | yes |
 | Change achievement sharing | own only | no | no | yes |
 
-- A) *Achievements are private by default; the recipient may share them
-  publicly or with selected users.*
-- B) The issuer's default visibility applies until the recipient changes it.
-- C) All verified achievements are public by default.
+The module-configured default seeds the user's visibility setting, which seeds
+new achievement ACLs. The recipient can change visibility using the relation
+choices supported by `GDT_ACLRelation`; arbitrary individual selections are
+not part of this contract.
 
 Third-party views may only read achievements explicitly shared with that party
 or made public. Badger must not derive hidden profiles or scores from badges,
@@ -334,7 +341,7 @@ module base capacity plus the user's `bb_add_max_equip` achievements in total.
 
 ## Initial implementation slice
 
-Implement one staff-verified badge, private achievement ACLs, `GDO_Attest`,
+Implement one staff-verified badge, configurable achievement ACLs, `GDO_Attest`,
 virtual cosmetic reward fields on `GDO_Achieve`, recipient acknowledgement
 (`verified → claimed`) and explicit sharing. Community voting, AL verification,
 document evidence, avatar layering and tag integration follow after this slice

@@ -1,5 +1,5 @@
 <?php
-namespace GDO\Badgeg\install;
+namespace GDO\Badger\install;
 
 final class BadgerInstallBadges
 {
