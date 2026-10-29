@@ -5,6 +5,7 @@ use GDO\Avatar\GDO_Avatar;
 use GDO\Avatar\GDO_UserAvatar;
 use GDO\Badger\Module_Badger;
 use GDO\Crypto\BCrypt;
+use GDO\Core\Application;
 use GDO\Date\Time;
 use GDO\File\GDO_File;
 use GDO\User\GDO_User;
@@ -39,12 +40,18 @@ final class BadgerInstall
             $names[$name] = true;
             $accounts[$key] = $entry;
         }
+        $seedOwner = null;
         foreach ($accounts as $key => $entry)
         {
             $user = self::installAdmin(...$entry);
+            if ($key === 'gizmore') { $seedOwner = $user; }
             if ($key === 'gizmore' || $key === 'mira') { self::installAvatar($user, $key . '.png'); }
         }
-        BadgerInstallBadges::install();
+        if (!$seedOwner) { throw new RuntimeException('Missing Badger seed owner'); }
+        // The core test harness later replaces its fixture users by ID.
+        // Seed badges have restrictive owner foreign keys, so populate them
+        // separately in tests after fixture setup, not during test bootstrap.
+        if (!Application::$INSTANCE->isUnitTests()) { BadgerInstallBadges::install($seedOwner); }
     }
 
     private static function installAdmin(string $username,  string $email, string $password): GDO_User

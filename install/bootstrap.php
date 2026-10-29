@@ -24,9 +24,9 @@ set_exception_handler(static function (Throwable $ex): void {
     exit(1);
 });
 chdir(dirname(__DIR__, 3));
-require 'protected/config_badger.php';
+require 'protected/config.php';
 require 'GDO7.php';
-if (GDO_DB_NAME !== 'phpgdo_badger' || GDO_DB_USER !== 'mira' || GDO_FILES_DIR !== 'files_badger')
+if (GDO_DB_NAME !== 'phpgdo_badger' || GDO_FILES_DIR !== 'files_badger')
 {
     throw new RuntimeException('Badger isolation configuration is invalid');
 }
@@ -38,7 +38,7 @@ $app = new class extends Application {
 Logger::init(null, 0);
 $db = Database::init();
 $database = $db->queryRead('SELECT DATABASE() AS name, CURRENT_USER() AS principal')->fetch_assoc();
-if (($database['name'] ?? null) !== 'phpgdo_badger' || ($database['principal'] ?? null) !== 'mira@localhost')
+if (($database['name'] ?? null) !== 'phpgdo_badger' || ($database['principal'] ?? null) !== GDO_DB_USER . '@localhost')
 {
     throw new RuntimeException('Unexpected database connection');
 }

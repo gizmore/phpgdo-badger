@@ -28,6 +28,12 @@ final class ItemEquipment
             $style = sprintf('position:absolute;left:%.4F%%;top:%.4F%%;width:%.4F%%;height:%.4F%%;pointer-events:none', $x, $y, $width, $height);
             $url = href('Badger', 'Item', '&achievement=' . $row['ba_id']);
             $layers .= '<img class="badger-avatar-item" src="' . html($url) . '" alt="' . html($row['bb_item_name'] ?? '') . '" style="' . $style . '">';
+            if (($row['bb_item_name'] ?? '') === 'Page-turning Book')
+            {
+                $pageStyle = sprintf('left:%.4F%%;top:%.4F%%;width:%.4F%%;height:%.4F%%',
+                    $x + $width * .5, $y + $height * .30, $width * .20, $height * .32);
+                $layers .= '<span class="badger-book-page" aria-hidden="true" style="' . $pageStyle . '"></span>';
+            }
         }
         if ($layers === '')
         {
@@ -35,8 +41,10 @@ final class ItemEquipment
         }
         return '<style>@keyframes badger-avatar-reveal{from{transform:scale(1.15)}to{transform:scale(1)}}' .
             '@keyframes badger-item-reveal{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}' .
+            '@keyframes badger-page-turn{0%,35%,100%{transform:perspective(100px) rotateY(0)}65%{transform:perspective(100px) rotateY(-150deg)}}' .
+            '.badger-book-page{position:absolute;pointer-events:none;background:#f8edcc;border-radius:3px;transform-origin:left center;animation:badger-page-turn 4s ease-in-out infinite}' .
             '.gdo-avatar-layers{animation:badger-avatar-reveal .5s ease-out}.badger-avatar-item{animation:badger-item-reveal .7s ease-out}' .
-            '@media(prefers-reduced-motion:reduce){.gdo-avatar-layers,.badger-avatar-item{animation:none}}</style>' . $layers;
+            '@media(prefers-reduced-motion:reduce){.gdo-avatar-layers,.badger-avatar-item,.badger-book-page{animation:none}.badger-book-page{display:none}}</style>' . $layers;
     }
 
     public static function choices(GDO_User $user): array

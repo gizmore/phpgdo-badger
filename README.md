@@ -7,10 +7,10 @@ are cosmetic: an achievement can show a new item, image, XP or stats without
 changing unrelated game mechanics.
 
 Deployment uses a dedicated `phpgdo_badger` database and a Badger-specific
-configuration selected only by an Apache-set `GDO_BADGER_INSTANCE=1` value.
-The normal PHPGDO configuration and database remain the default for other
-virtual hosts. Badger's local MariaDB account authenticates using the web
-process's Unix identity; the Badger virtual host must therefore run as `mira`.
+configuration. For now, select an instance manually by copying its protected
+configuration variant to `protected/config.php`; this selection applies to
+the shared PHPGDO installation and all virtual hosts using it. The Badger
+installer checks the selected database, file directory and database principal.
 Badger uses its own file storage, temporary/cache directory and HTTPS-only
 cookie name/domain. Its setup must never run the shared web install wizard,
 which otherwise selects or rewrites the generic configuration.
@@ -44,13 +44,6 @@ never put new passwords there. Rotating credentials does not erase Git history.
 for an existing isolated database: it reports whether configured seed accounts
 are missing, present as members, or present with another account type. It
 prints neither names nor credentials and does not grant rights or run a seed.
-The initial badge seed also includes a Bergsteiger (mountaineer) root with a
-transparent mountaineering item and four altitude milestones: 1,000, 2,000,
-3,000 and 4,000 metres. The exact representation of the root-to-leaf
-relationship remains to be agreed; the existing tree organizes categories,
-not parent-child badges. The root item is a small transparent GIF ice axe.
-The four milestones are independent achievement definitions, not proof that a
-particular summit was climbed; their descriptive text states the altitude.
 Badger depends on Cronjob for evidence retention, review notices and optional
 AL review dispatch and CLI for management; the site must also run the PHPGDO
 cron scheduler.
@@ -257,6 +250,18 @@ the bottom of the form. The preview uses the configured base, stat and image
 rates, including the first free XP point. Invalid or overflowing values show no
 price. JavaScript is optional: the server always recalculates the authoritative
 price when the form is submitted.
+
+### Initial badge seeds
+
+On a fresh installation, the configured Gizmore seed account owns two groups:
+Caretaker (Cleanse Togetherness) and Bookworm (Reading). Each has a root badge,
+its own category and the listed cleaning or reading achievements. Badger does
+not yet support parent-child badge relationships: the root badge and its
+achievements share the category, rather than implying a prerequisite. Each
+group shares its own icon; the roots grant the Golden WC Brush and the
+Page-turning Book items. The book item visually turns a page when equipped;
+reduced-motion preferences suppress this animation. Seeding is only part of
+installation; it does not modify an existing live installation automatically.
 
 `Badger.FAQ` explains the basic badge and achievement workflow. Its heading
 uses the optional JQuery candle effect in the UI module's theme color; the page

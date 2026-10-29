@@ -916,6 +916,12 @@ final class AchievementTransitionTest extends TestCase
         self::assertStringContainsString('&lt;hat&gt;', $choices['70']);
         self::assertArrayNotHasKey('72', $choices);
         ItemEquipment::set($equipper, '70', true, 1);
+        $db->queryWrite("UPDATE gdo_badger_badge SET bb_item_name='Page-turning Book' WHERE bb_id=70");
+        $bookLayers = ItemEquipment::renderLayers($equipper, 512, 512);
+        self::assertStringContainsString('class="badger-book-page"', $bookLayers);
+        self::assertStringContainsString('badger-page-turn', $bookLayers);
+        self::assertStringContainsString('prefers-reduced-motion:reduce', $bookLayers);
+        $db->queryWrite("UPDATE gdo_badger_badge SET bb_item_name='<hat>' WHERE bb_id=70");
         $layers = ItemEquipment::renderLayers($equipper, 512, 512);
         self::assertStringContainsString('left:25.0000%', $layers);
         self::assertStringContainsString('width:50.0000%', $layers);
