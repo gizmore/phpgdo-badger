@@ -22,29 +22,29 @@ publicly, to an organisation or to selected people.
 - `Badger.BadgeCrud` — GDO staff editor and moderation view.
 - `Badger.Add` — add a badge for a user/issuer account. Cost Credits.
 - `Badger.Edit` — edit a badge as its owner or staff.
-- `Badger.Image` — Pixel editor for items 
+- `Badger.Image` — Pixel editor for items (currently only upload works, credits are only paid once)
+- `Badger.Items` – Avatar item selector / preview
 - `Badger.CategoryTree` — manage badge categories.
 - `Badger.Achieve` — start, submit, withdraw, claim or acknowledge an achievement.
 - `Badger.AddStaff` — add badge staff; ownership remains with the owner.
 
 ## GDTs
 
-- `GDT_BadgePosition` — `helmet`, `armor`, `shield`, `weapon`, `boots`,
-  `legs`, or no position.
-- `GDT_BadgeTree` — visual hierarchy of badges rooted at `parent_id = 0`.
-- `GDT_BadgeVerificationPolicy` — selected staff, community, document and AL
-  verification fields.
-- `GDT_BadgeVisibility` — recipient sharing/ACL choice.
+- `GDT_BadgeTree` — visual hierarchy of badges each rooted at `parent_id = 0`.
 
 ## GDOs
 
 `GDO_Badge` — one issuer-defined badge. Its physical table is named through
   `gdo_table_name()` and therefore becomes `gdo_badger_badge`.
 
-- bb_item GDT_ImageFile
-- bb_image GDT_ImageFile (a transparent GIF; may be animated with 4 frames at
+- bb_image GDT_ImageFile for badge overview background
+- bb_icon GDT_ImageFile for tables and profile
+- bb_item GDT_ImageFile (a transparent GIF; may be animated with 4 frames at
   250 ms each)
 - bb_item_<x|y|w|h> (position of the avatar item)
+- bb_item_name
+- bb_item_paid_at
+- bb_image_paid_at
 - bb_category
 - bb_<xp|hp|str|int>
 - and more...
@@ -59,9 +59,8 @@ publicly, to an organisation or to selected people.
 
 ## Avatars
 
-An avatar may layer one earned badge image per `GDT_BadgePosition` over its
-base image. The Avatar renderer must honour the achievement ACL before showing
-an item.
+An avatar may layer equipped earned badge images over its base image. The Avatar
+renderer must honour the achievement ACL before showing an item.
 
 ## Module configuration
 
@@ -106,6 +105,7 @@ controlled by an ACL.
 | `Badger.Add` | Create a badge for an issuer account. | issuer owner |
 | `Badger.Edit` | Edit a badge owned by the current issuer. | owner / badge staff |
 | `Badger.Image` | Create or select badge imagery. | owner / badge staff |
+| `Badger.Items` | Select and preview equipped avatar items. | recipient |
 | `Badger.CategoryTree` | Manage the Badger category hierarchy. | category managers |
 | `Badger.Achieve` | Start, submit, withdraw, inspect or acknowledge an award. | recipient |
 | `Badger.AddStaff` | Set or clear `ba_staff` on a scoped achievement. | issuer owner |
@@ -117,11 +117,7 @@ controlled by an ACL.
 
 ## GDTs
 
-- `GDT_BadgePosition` validates `helmet`, `armor`, `shield`, `weapon`,
-  `boots`, `legs` or no item position.
 - `GDT_BadgeTree` renders a badge hierarchy rooted at `parent_id = 0`.
-- `GDT_BadgeVerificationPolicy` validates the `bb_verify_*` fields below.
-- `GDT_BadgeVisibility` validates the recipient's achievement ACL.
 - Core `GDT_Virtual` provides subquery-generated cosmetic aggregates on
   `GDO_Achieve`; Badger does not implement a separate RPG table.
 
@@ -133,20 +129,16 @@ module prefix, so no class name needs `Badger` embedded in it.
 - `GDO_Category` → `gdo_badger_category`: `parent_id`, name, slug, sort order
   and timestamps. Parent is nullable; cycles are forbidden.
 - `GDO_Badge` → `gdo_badger_badge`: issuer/owner, text, category/tags,
-  `bb_item`, transparent/optionally animated `bb_image`,
-  `bb_item_<x|y|w|h>`, `bb_category`, cosmetic `bb_<xp|hp|str|int>`,
-  verification fields, default visibility and active/archived state. Badges
-  are edited in place; there is no version field.
+  overview-background `bb_image`, table/profile `bb_icon`, transparent and
+  optionally animated `bb_item`, `bb_item_<x|y|w|h>`, `bb_item_name`,
+  `bb_item_paid_at`, `bb_image_paid_at`, `bb_category`, cosmetic
+  `bb_<xp|hp|str|int>`, verification fields, default visibility and
+  active/archived state. Badges are edited in place; there is no version field.
 - `GDO_Achieve` → `gdo_badger_achieve`: badge, recipient, verification status,
   deletion state, approval counters, evidence references, ACL, `ba_equipped`,
   `ba_staff` and lifecycle timestamps. Core `GDT_Virtual` fields calculate
   `SUM(bb_<xp|hp|str|int>) GROUP BY ba_user` from claimed, non-revoked
   achievements.
-- `GDO_Attest` → `gdo_badger_attest`: immutable decision/audit record for one
-  achievement.
-- `GDO_Tag` and `GDO_BadgeTag` → `gdo_badger_tag` and
-  `gdo_badger_badge_tag`: optional tag relation. Categories remain a Badger
-  tree.
 
 ### Issuers, owner and staff
 
@@ -275,8 +267,8 @@ Sponsor-facing views may only read achievements explicitly shared with that
 sponsor or made public. Badger must not derive hidden profiles or scores from
 badges, categories or attestation history.
 
-Avatar rendering may equip at most one image per `GDT_BadgePosition` and no
-more than the user's `bb_max_equipped` achievements in total.
+Avatar rendering may equip no more than the user's `bb_max_equipped`
+achievements in total.
 
 ## Initial implementation slice
 
