@@ -74,7 +74,8 @@ Add visible achievements with bb_icon display.
 
 Coming soon.
 
-In v1 we have upload with convert to gif and dimension GDT_Sizes
+In v1, uploads convert to GIF and dimensions are validated with Core
+`GDT_Length` fields.
 
 ## Credits
 
@@ -95,6 +96,8 @@ Badger v1; the current XP, HP, STR, INT and item values remain cosmetic.
 - `bb_welcome_credits=200` – initial credits for a user.
 - `bb_credits_per_<badge=50|xp=50|hp=50|str=50|int=50|image=50>` — cost for `Badger.Add`.
 - `bb_default_<xp=1|hp=0|str=0|int=0|max_equip=2>` — cosmetic defaults for a badge.
+- `bb_item_max_w` / `bb_item_max_h` — maximum width and height for an
+  uploaded avatar item; validated with Core `GDT_Length` fields.
 - default staff/community approval thresholds and review timeout.
 - default achievement visibility and issuer-approval requirement.
 - permitted document MIME types, maximum size, malware scanning and retention.
@@ -203,7 +206,8 @@ Patch Core with the profile main-content card-GDT hook required by Badger. The
 card displays achievements permitted by the profile ACL using `bb_icon`.
 
 `Badger.Image` is upload-only in v1: it converts uploads to GIF and validates
-dimensions with `GDT_Sizes`. The pixel editor is a later feature.
+dimensions with Core `GDT_Length` fields against `bb_item_max_w` and
+`bb_item_max_h`. The pixel editor is a later feature.
 
 ## Achievement lifecycle
 
