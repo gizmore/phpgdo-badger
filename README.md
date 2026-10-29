@@ -238,7 +238,7 @@ it is no longer needed.
 - On AL rejection, create the rejection attestation and PM badge staff to
   review or delete the source evidence.
 - If staff do not act, rejected evidence is deleted after
-  `badger_rejected_document_delete_after`.
+  `bb_rejected_document_delete_after`.
 - A) *Delete source evidence after successful verification once its hash and
   decision record are stored.*
 - B) Keep accepted evidence until the recipient acknowledges the award.
