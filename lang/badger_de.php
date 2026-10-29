@@ -1,6 +1,12 @@
 <?php
 return [
     'mt_badger_add' => 'Badge erstellen',
+    'mt_badger_faq' => 'Badger-FAQ',
+    'badger_faq_badge' => 'Ein Badge beschreibt einen Erfolg, den ein Herausgeber vergeben kann.',
+    'badger_faq_claim' => 'Beantrage ein Badge, durchlaufe die Prüfung und nimm es nach der Freigabe an.',
+    'badger_add_help' => 'Beschreibe den Erfolg und wähle Sichtbarkeit, Werte und optionales Bild. Werte und Bildoption sind nach dem Erstellen nicht mehr änderbar. Der erste XP-Punkt ist gratis.',
+    'badger_add_price' => 'Geschätzter Preis: %s Credits',
+    'badger_add_price_invalid' => 'Gib gültige Werte ein, um den Preis zu berechnen.',
     'list_badger_badges' => 'Badges (%s)',
     'list_badger_badgecrud' => 'Badge-Moderation (%s)',
     'list_badger_myachievements' => 'Meine Achievements (%s)',
@@ -8,7 +14,7 @@ return [
     'list_badger_communityqueue' => 'Community-Anträge prüfen (%s)',
     'list_badger_rankings' => 'Badger-Rangliste (%s)',
     'bb_name' => 'Name',
-    'bb_description' => 'Beschreibung',
+    'bb_description' => 'Badge-Beschreibung',
     'bb_icon' => 'Icon',
     'bb_owner' => 'Herausgeber',
     'bb_category' => 'Kategorie',

@@ -25,6 +25,7 @@ final class Module_Badger extends GDO_Module
     public int $priority = 9001;
 
     public function onLoadLanguage(): void { $this->loadLanguage('lang/badger'); }
+    public function onIncludeScripts(): void { $this->addJS('js/phpgdo-badger.js'); }
     public function defaultMethod(): Method { return Badges::make(); }
 
     public function hookUserActivated(GDO_User $user, ?GDO_UserActivation $activation = null): void
@@ -53,6 +54,7 @@ final class Module_Badger extends GDO_Module
     {
         $sidebar = GDT_Page::instance()->leftBar();
         $sidebar->addField(GDT_Link::make()->text('mt_badger_badges')->href(href('Badger', 'Badges')));
+        $sidebar->addField(GDT_Link::make()->text('mt_badger_faq')->href(href('Badger', 'FAQ')));
         $sidebar->addField(GDT_Link::make()->text('mt_badger_rankings')->href(href('Badger', 'Rankings')));
         if (GDO_User::current()->isMember())
         {

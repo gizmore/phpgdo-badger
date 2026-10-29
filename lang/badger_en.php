@@ -1,6 +1,12 @@
 <?php
 return [
     'mt_badger_add' => 'Create badge',
+    'mt_badger_faq' => 'Badger FAQ',
+    'badger_faq_badge' => 'A badge describes an achievement that an issuer can award.',
+    'badger_faq_claim' => 'Request a badge, complete its verification, and claim it once approved.',
+    'badger_add_help' => 'Describe the achievement and choose its visibility, rewards and optional image. Reward values and the image option cannot be changed after creation. The first XP point is free.',
+    'badger_add_price' => 'Estimated price: %s credits',
+    'badger_add_price_invalid' => 'Enter valid values to calculate the price.',
     'list_badger_badges' => 'Badges (%s)',
     'list_badger_badgecrud' => 'Badge moderation (%s)',
     'list_badger_myachievements' => 'My achievements (%s)',
@@ -8,7 +14,7 @@ return [
     'list_badger_communityqueue' => 'Community review requests (%s)',
     'list_badger_rankings' => 'Badger rankings (%s)',
     'bb_name' => 'Name',
-    'bb_description' => 'Description',
+    'bb_description' => 'Badge description',
     'bb_icon' => 'Icon',
     'bb_owner' => 'Issuer',
     'bb_category' => 'Category',

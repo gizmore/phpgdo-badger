@@ -27,7 +27,7 @@ final class GDO_Badge extends GDO
             GDT_AutoInc::make('bb_id'),
             GDT_User::make('bb_owner')->notNull()->cascadeRestrict(),
             GDT_String::make('bb_name')->max(64)->notNull(),
-            GDT_Text::make('bb_description'),
+            GDT_Text::make('bb_description')->label('bb_description'),
             GDT_Object::make('bb_category')->table(GDO_Category::table())->cascadeRestrict(),
             GDT_ACLRelation::make('bb_visibility')->initial(GDT_ACLRelation::ALL),
             GDT_ImageFile::make('bb_image')->cascadeNull(),

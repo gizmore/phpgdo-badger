@@ -339,7 +339,13 @@ final class AchievementTransitionTest extends TestCase
         $db->queryWrite("DELETE FROM gdo_badger_badge WHERE bb_name='Badge test'");
         GDO_User::setCurrent($walletUser);
         $addForm = Add::make()->getForm();
+        $htmlFields = array_filter($addForm->getAllFields(), static fn($field) => $field instanceof \GDO\UI\GDT_HTML);
+        $htmlContents = implode('', array_map(static fn($field) => $field->renderHTML(), $htmlFields));
+        self::assertStringContainsString('badger-price-preview', $htmlContents);
+        self::assertStringContainsString('data-xp=', $htmlContents);
+        self::assertStringContainsString('<p>', $htmlContents);
         self::assertNotNull($addForm->getField('bb_name'));
+        self::assertSame('bb_description', $addForm->getField('bb_description')->labelKey);
         self::assertNotNull($addForm->getField('bb_has_image'));
         self::assertNotNull($addForm->getField('bb_xp'));
         $inputs = ['bb_name' => 'Form badge', 'bb_xp' => '1', 'bb_hp' => '0', 'bb_str' => '0', 'bb_int' => '0', 'bb_has_image' => '0', 'submit' => '1'];

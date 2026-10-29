@@ -252,6 +252,16 @@ calculated price cannot be represented as a PHP integer; never wrap or round
 an overflowing price. Badge stat fields accept only whole non-negative values
 representable by their unsigned 32-bit database columns.
 
+`Badger.Add` explains badge creation and shows a live credit-price preview at
+the bottom of the form. The preview uses the configured base, stat and image
+rates, including the first free XP point. Invalid or overflowing values show no
+price. JavaScript is optional: the server always recalculates the authoritative
+price when the form is submitted.
+
+`Badger.FAQ` explains the basic badge and achievement workflow. Its heading
+uses the optional JQuery candle effect in the UI module's theme color; the page
+remains readable when effects or JavaScript are disabled.
+
 ## Badger RPG
 
 Each Achievement adds to your xp, hp, str and int.

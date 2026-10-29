@@ -11,6 +11,7 @@ use GDO\Form\GDT_Form;
 use GDO\Form\GDT_Submit;
 use GDO\Form\MethodForm;
 use GDO\User\GDO_User;
+use GDO\UI\GDT_HTML;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -22,6 +23,8 @@ final class Add extends MethodForm
     {
         $badge = GDO_Badge::blank();
         $module = Module_Badger::instance();
+        $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $form->addField(GDT_HTML::make('badger_add_help')->var('<p>' . $escape(t('badger_add_help')) . '</p>'));
         foreach (['bb_name', 'bb_description', 'bb_category', 'bb_visibility', 'bb_has_image', 'bb_xp', 'bb_hp', 'bb_str', 'bb_int'] as $field)
         {
             $column = $badge->gdoColumn($field);
@@ -31,6 +34,15 @@ final class Add extends MethodForm
             }
             $form->addField($column);
         }
+        $attributes = '';
+        foreach (['badge', 'xp', 'hp', 'str', 'int', 'image'] as $rate)
+        {
+            $attributes .= ' data-' . $rate . '="' . (int) $module->getConfigVar('bb_credits_per_' . $rate) . '"';
+        }
+        $attributes .= ' data-max="' . PHP_INT_MAX . '"';
+        $attributes .= ' data-label="' . $escape(t('badger_add_price', ['%s'])) . '"';
+        $attributes .= ' data-invalid="' . $escape(t('badger_add_price_invalid')) . '"';
+        $form->addField(GDT_HTML::make('badger_price_preview')->var('<p class="badger-price-preview"' . $attributes . ' aria-live="polite">' . $escape(t('badger_add_price_invalid')) . '</p>'));
         $form->addField(GDT_AntiCSRF::make());
         $form->actions()->addField(GDT_Submit::make());
     }
