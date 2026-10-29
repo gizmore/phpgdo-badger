@@ -8,13 +8,13 @@ changing unrelated game mechanics.
 
 # Badger (For Humans)
 
-Badger lets a person or organisation account create badges such as “helped at
-an event”, “completed a workshop” or “welcomed three newcomers”. A user asks
-for a badge, the badge's staff, community or AL verification checks it, and the
-user sees the award animation and new cosmetic item when it succeeds.
+Badger lets a user account create badges such as “helped at an event”,
+“completed a workshop” or “welcomed three newcomers”. A user asks for a badge,
+the badge's staff, community or AL verification checks it, and the user sees
+the award animation and new cosmetic item when it succeeds.
 
 Achievements are private by default. The recipient decides whether to show one
-publicly, to an organisation or to selected people.
+publicly or to selected people.
 
 ## Methods
 
@@ -43,8 +43,6 @@ publicly, to an organisation or to selected people.
   250 ms each)
 - bb_item_<x|y|w|h> (position of the avatar item)
 - bb_item_name
-- bb_item_paid_at
-- bb_image_paid_at
 - bb_category
 - bb_<xp|hp|str|int>
 - and more...
@@ -62,10 +60,24 @@ publicly, to an organisation or to selected people.
 An avatar may layer equipped earned badge images over its base image. The Avatar
 renderer must honour the achievement ACL before showing an item.
 
+Avatars shall zoom out and equip items in an animation.
+
+## Credits
+
+We use credits to control how many badges are added.
+
+Some configurations cannot be edited after you add a badge (xp,hp,str,int,has_image)
+
+## Badger RPG
+
+Each Achievement adds to your xp, hp, str and int.
+Some badges come with an image, which you can equip for your avatar.
+
+
 ## Module configuration
 
 - `bb_welcome_credits=200` – initial credits for a user.
-- `bb_credits_per_<badge=50|xp=50|hp=50|str=50|int=50|image=50>` — cost for `Badger.Add|Edit`.
+- `bb_credits_per_<badge=50|xp=50|hp=50|str=50|int=50|image=50>` — cost for `Badger.Add`.
 - `bb_default_<xp=1|hp=0|str=0|int=0>` — cosmetic defaults for a badge.
 - default staff/community approval thresholds and review timeout.
 - default achievement visibility and issuer-approval requirement.
@@ -102,7 +114,7 @@ controlled by an ACL.
 | --- | --- | --- |
 | `Badger.Badges` | Browse badge definitions and ACL-permitted achievements. | everyone |
 | `Badger.BadgeCrud` | GDO-wide badge moderation and editing. | GDO staff |
-| `Badger.Add` | Create a badge for an issuer account. | issuer owner |
+| `Badger.Add` | Create a badge for a user account; charge configured credits. | owner |
 | `Badger.Edit` | Edit a badge owned by the current issuer. | owner / badge staff |
 | `Badger.Image` | Create or select badge imagery. | owner / badge staff |
 | `Badger.Items` | Select and preview equipped avatar items. | recipient |
@@ -131,7 +143,7 @@ module prefix, so no class name needs `Badger` embedded in it.
 - `GDO_Badge` → `gdo_badger_badge`: issuer/owner, text, category/tags,
   overview-background `bb_image`, table/profile `bb_icon`, transparent and
   optionally animated `bb_item`, `bb_item_<x|y|w|h>`, `bb_item_name`,
-  `bb_item_paid_at`, `bb_image_paid_at`, `bb_category`, cosmetic
+  `bb_category`, cosmetic
   `bb_<xp|hp|str|int>`, verification fields, default visibility and
   active/archived state. Badges are edited in place; there is no version field.
 - `GDO_Achieve` → `gdo_badger_achieve`: badge, recipient, verification status,
@@ -140,13 +152,21 @@ module prefix, so no class name needs `Badger` embedded in it.
   `SUM(bb_<xp|hp|str|int>) GROUP BY ba_user` from claimed, non-revoked
   achievements.
 
-### Issuers, owner and staff
+### Owner and staff
 
-An issuer is a normal user account. An organisation is represented by such an
-account with its address/profile information; Badger needs no separate
-organisation GDO. `ba_staff` marks an achievement holder as badge staff. Owner
-and badge staff have almost identical operational permissions. Only the owner
-may transfer ownership or change `ba_staff`.
+A badge belongs to one normal user account. `ba_staff` marks an achievement
+holder as badge staff. Owner and badge staff have almost identical operational
+permissions. Only the owner may transfer ownership or change `ba_staff`.
+
+### Credits and immutable badge fields
+
+`bb_welcome_credits` gives a new user initial credits. `Badger.Add` charges
+the applicable `bb_credits_per_*` values for badge creation. `Badger.Edit`
+does not charge credits.
+
+Once a badge exists, its cosmetic `bb_<xp|hp|str|int>` values and whether it
+has an image/item cannot be changed. Text, category, verification settings and
+active state remain editable.
 
 ## Achievement lifecycle
 
@@ -259,16 +279,17 @@ lifecycle and audit trail.
 | Change achievement sharing | own only | no | no | yes |
 
 - A) *Achievements are private by default; the recipient may share them
-  publicly, with an organisation or with selected users.*
+  publicly or with selected users.*
 - B) The issuer's default visibility applies until the recipient changes it.
 - C) All verified achievements are public by default.
 
-Sponsor-facing views may only read achievements explicitly shared with that
-sponsor or made public. Badger must not derive hidden profiles or scores from
-badges, categories or attestation history.
+Third-party views may only read achievements explicitly shared with that party
+or made public. Badger must not derive hidden profiles or scores from badges,
+categories or attestation history.
 
-Avatar rendering may equip no more than the user's `bb_max_equipped`
-achievements in total.
+Avatar rendering zooms out and equips selected item images in an animation.
+It may equip no more than the user's `bb_max_equipped` achievements in total;
+credits may increase that user configuration.
 
 ## Initial implementation slice
 
