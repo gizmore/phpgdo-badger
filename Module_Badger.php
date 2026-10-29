@@ -22,6 +22,8 @@ use GDO\Register\GDO_UserActivation;
 
 final class Module_Badger extends GDO_Module
 {
+    public int $priority = 9001;
+
     public function onLoadLanguage(): void { $this->loadLanguage('lang/badger'); }
     public function defaultMethod(): Method { return Badges::make(); }
 
