@@ -1,0 +1,3 @@
+# System crontab example; review enabled PHPGDO jobs before installation.
+# The parent directory must be writable by mira and denied by the web server.
+* * * * * mira cd /home/gizmore/www/phpgdo && /usr/bin/flock -n /home/gizmore/www/phpgdo/temp_badger/badger-cron.lock /usr/bin/env GDO_BADGER_INSTANCE=1 /usr/bin/php gdo_cronjob.php >> /home/gizmore/www/phpgdo/temp_badger/badger-cron.log 2>&1
