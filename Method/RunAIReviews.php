@@ -2,9 +2,9 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\AIReviewProviderFactory;
-use GDO\Badger\AIReviewRunner;
-use GDO\Badger\AIReviewQueue;
+use GDO\Badger\Service\AIReviewProviderFactory;
+use GDO\Badger\Service\AIReviewRunner;
+use GDO\Badger\Service\AIReviewQueue;
 use GDO\Badger\Module_Badger;
 use GDO\Cronjob\MethodCronjob;
 use GDO\DB\Database;

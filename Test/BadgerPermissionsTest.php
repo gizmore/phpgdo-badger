@@ -2,8 +2,8 @@
 declare(strict_types=1);
 namespace GDO\Badger\Test;
 
-use GDO\Badger\BadgerPermissions;
-use GDO\Badger\AchievementActions;
+use GDO\Badger\Service\BadgerPermissions;
+use GDO\Badger\Service\AchievementActions;
 use GDO\Badger\GDO_Achieve;
 use GDO\Badger\GDO_Badge;
 use GDO\User\GDO_User;
@@ -75,23 +75,23 @@ final class BadgerPermissionsTest extends TestCase
         catch (\RuntimeException $ex) { self::assertSame('Permission denied', $ex->getMessage()); }
         try
         {
-            \GDO\Badger\AchievementDeletion::mark($guest, $badge, $achievement, true);
+            \GDO\Badger\Service\AchievementDeletion::mark($guest, $badge, $achievement, true);
             self::fail('A guest cannot delete a former recipient record');
         }
         catch (\RuntimeException $ex) { self::assertSame('Permission denied', $ex->getMessage()); }
         try
         {
-            \GDO\Badger\AchievementSharing::set($guest, $badge, $achievement, 'acl_all');
+            \GDO\Badger\Service\AchievementSharing::set($guest, $badge, $achievement, 'acl_all');
             self::fail('A guest cannot change former recipient sharing');
         }
         catch (\RuntimeException $ex) { self::assertSame('Invalid sharing request', $ex->getMessage()); }
         foreach ([
-            static fn () => \GDO\Badger\EvidenceAttachments::attach($guest, $badge, $achievement, '', '', 1, [], null),
-            static fn () => \GDO\Badger\EvidenceApproval::approve($guest, $achievement, ''),
-            static fn () => \GDO\Badger\AIReviewHumanApproval::accept($guest, $achievement, ''),
-            static fn () => \GDO\Badger\ItemStorage::save($guest, $badge, ''),
-            static fn () => \GDO\Badger\BadgeStaff::set($guest, $badge, $owner, true),
-            static fn () => \GDO\Badger\BadgeOwnership::transfer($guest, $badge, $owner),
+            static fn () => \GDO\Badger\Service\EvidenceAttachments::attach($guest, $badge, $achievement, '', '', 1, [], null),
+            static fn () => \GDO\Badger\Service\EvidenceApproval::approve($guest, $achievement, ''),
+            static fn () => \GDO\Badger\Service\AIReviewHumanApproval::accept($guest, $achievement, ''),
+            static fn () => \GDO\Badger\Service\ItemStorage::save($guest, $badge, ''),
+            static fn () => \GDO\Badger\Service\BadgeStaff::set($guest, $badge, $owner, true),
+            static fn () => \GDO\Badger\Service\BadgeOwnership::transfer($guest, $badge, $owner),
         ] as $operation)
         {
             try { $operation(); self::fail('A guest must not use a retained privileged identity'); }

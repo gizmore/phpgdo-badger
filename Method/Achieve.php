@@ -2,20 +2,20 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\AchievementActions;
-use GDO\Badger\AchievementDeletion;
-use GDO\Badger\AchievementRequests;
-use GDO\Badger\AchievementHistory;
-use GDO\Badger\AchievementLifecycle;
-use GDO\Badger\AchievementSharing;
-use GDO\Badger\CommunityApproval;
-use GDO\Badger\EvidenceApproval;
-use GDO\Badger\EvidenceAccess;
-use GDO\Badger\EvidenceDeletion;
-use GDO\Badger\AIReviewHumanApproval;
-use GDO\Badger\AIConsent;
+use GDO\Badger\Service\AchievementActions;
+use GDO\Badger\Service\AchievementDeletion;
+use GDO\Badger\Service\AchievementRequests;
+use GDO\Badger\Service\AchievementHistory;
+use GDO\Badger\Service\AchievementLifecycle;
+use GDO\Badger\Service\AchievementSharing;
+use GDO\Badger\Service\CommunityApproval;
+use GDO\Badger\Service\EvidenceApproval;
+use GDO\Badger\Service\EvidenceAccess;
+use GDO\Badger\Service\EvidenceDeletion;
+use GDO\Badger\Service\AIReviewHumanApproval;
+use GDO\Badger\Service\AIConsent;
 use GDO\Badger\Module_Badger;
-use GDO\Badger\BadgerPermissions;
+use GDO\Badger\Service\BadgerPermissions;
 use GDO\Badger\GDO_Achieve;
 use GDO\Badger\GDO_Badge;
 use GDO\Core\GDT;
@@ -178,7 +178,7 @@ final class Achieve extends MethodForm
                 {
                     $provider = (string) Module_Badger::instance()->getConfigVar('bb_ai_provider_class');
                     $model = (string) Module_Badger::instance()->getConfigVar('bb_ai_ollama_model');
-                    if ($provider === \GDO\Badger\OllamaAIReviewProvider::class && $model !== '') { $provider .= ' / ' . $model; }
+                    if ($provider === \GDO\Badger\Service\OllamaAIReviewProvider::class && $model !== '') { $provider .= ' / ' . $model; }
                     $form->addField(GDT_HTML::make('ai_disclosure')->var(html(t('badger_ai_disclosure', [$provider ?: t('badger_ai_not_configured')]))));
                     $form->addField(GDT_Checkbox::make('ai_consent')->label('badger_ai_consent')->initial('0'));
                     $form->addField(GDT_Hidden::make('ai_consent_fingerprint')->initial(AIConsent::fingerprint()));

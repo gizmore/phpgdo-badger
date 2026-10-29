@@ -2,24 +2,24 @@
 declare(strict_types=1);
 namespace GDO\Badger\Test;
 
-use GDO\Badger\AchievementTransition;
-use GDO\Badger\AchievementActions;
-use GDO\Badger\AchievementRequests;
-use GDO\Badger\AchievementHistory;
-use GDO\Badger\AchievementSharing;
-use GDO\Badger\ItemStorage;
-use GDO\Badger\ItemEquipment;
-use GDO\Badger\ProfileAchievements;
-use GDO\Badger\CommunityApproval;
-use GDO\Badger\EvidenceAttachments;
-use GDO\Badger\EvidenceVault;
-use GDO\Badger\AchievementDeletion;
-use GDO\Badger\BadgerPermissions;
-use GDO\Badger\BadgeStaff;
-use GDO\Badger\BadgeCredits;
-use GDO\Badger\BadgeCreation;
-use GDO\Badger\BadgeListing;
-use GDO\Badger\CategoryTree;
+use GDO\Badger\Service\AchievementTransition;
+use GDO\Badger\Service\AchievementActions;
+use GDO\Badger\Service\AchievementRequests;
+use GDO\Badger\Service\AchievementHistory;
+use GDO\Badger\Service\AchievementSharing;
+use GDO\Badger\Service\ItemStorage;
+use GDO\Badger\Service\ItemEquipment;
+use GDO\Badger\Service\ProfileAchievements;
+use GDO\Badger\Service\CommunityApproval;
+use GDO\Badger\Service\EvidenceAttachments;
+use GDO\Badger\Service\EvidenceVault;
+use GDO\Badger\Service\AchievementDeletion;
+use GDO\Badger\Service\BadgerPermissions;
+use GDO\Badger\Service\BadgeStaff;
+use GDO\Badger\Service\BadgeCredits;
+use GDO\Badger\Service\BadgeCreation;
+use GDO\Badger\Service\BadgeListing;
+use GDO\Badger\Service\CategoryTree;
 use GDO\Badger\GDO_Achieve;
 use GDO\Badger\GDO_Badge;
 use GDO\Badger\GDT_BadgeUserUnique;
@@ -42,7 +42,7 @@ use GDO\DB\Database;
 use GDO\User\GDO_User;
 use PHPUnit\Framework\TestCase;
 
-final class FailingQueueProvider implements \GDO\Badger\AIReviewProvider
+final class FailingQueueProvider implements \GDO\Badger\Service\AIReviewProvider
 {
     public static int $calls = 0;
     public function name(): string { return 'failing-test-provider'; }
@@ -74,7 +74,7 @@ final class AchievementTransitionTest extends TestCase
         Application::init();
         Logger::init(null, 0);
         $db = Database::init();
-        $fairRows = $db->queryRead('SELECT a.ba_id FROM (SELECT 1 AS ba_id UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12) a ORDER BY ' . \GDO\Badger\AIReviewQueue::orderBy(10));
+        $fairRows = $db->queryRead('SELECT a.ba_id FROM (SELECT 1 AS ba_id UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12) a ORDER BY ' . \GDO\Badger\Service\AIReviewQueue::orderBy(10));
         $fairIds = [];
         while ($fairRow = $fairRows->fetch_assoc()) { $fairIds[] = (int) $fairRow['ba_id']; }
         self::assertSame([11, 12, 1, 10], $fairIds);
@@ -85,7 +85,7 @@ final class AchievementTransitionTest extends TestCase
         $badgeSchema = Database::DBMS()->dbmsCreateTableCode(GDO_Badge::table());
         self::assertStringContainsString('FOREIGN KEY (bb_item) REFERENCES gdo_file(file_id) ON DELETE SET NULL', $badgeSchema);
         self::assertStringNotContainsString('UNIQUE(bb_name)', $badgeSchema);
-        $db->queryWrite("CREATE TEMPORARY TABLE gdo_badger_badge (bb_id INT AUTO_INCREMENT PRIMARY KEY, bb_owner INT, bb_name VARCHAR(64), bb_description TEXT, bb_category INT, bb_image INT, bb_icon INT, bb_item INT, bb_has_image TINYINT DEFAULT 0, bb_item_name VARCHAR(255), bb_item_x INT, bb_item_y INT, bb_item_w INT, bb_item_h INT, bb_active TINYINT DEFAULT 1, bb_visibility VARCHAR(32) DEFAULT 'acl_all', bb_xp INT, bb_hp INT, bb_str INT, bb_int INT, bb_verify_staff TINYINT DEFAULT 1, bb_verify_cc TINYINT DEFAULT 0, bb_verify_doc TINYINT DEFAULT 0, bb_verify_ai TEXT, bb_verify_ai_doc TEXT, bb_approve_ai TINYINT DEFAULT 0, bb_staff_approvals_needed INT DEFAULT 1, bb_community_approvals_needed INT DEFAULT 1) ENGINE=InnoDB AUTO_INCREMENT=100");
+        $db->queryWrite("CREATE TEMPORARY TABLE gdo_badger_badge (bb_id INT AUTO_INCREMENT PRIMARY KEY, bb_owner INT, bb_name VARCHAR(64), bb_description TEXT, bb_category INT, bb_country CHAR(2) NULL, bb_image INT, bb_icon INT, bb_item INT, bb_has_image TINYINT DEFAULT 0, bb_item_name VARCHAR(255), bb_item_x INT, bb_item_y INT, bb_item_w INT, bb_item_h INT, bb_active TINYINT DEFAULT 1, bb_visibility VARCHAR(32) DEFAULT 'acl_all', bb_xp INT, bb_hp INT, bb_str INT, bb_int INT, bb_verify_staff TINYINT DEFAULT 1, bb_verify_cc TINYINT DEFAULT 0, bb_verify_doc TINYINT DEFAULT 0, bb_verify_ai TEXT, bb_verify_ai_doc TEXT, bb_approve_ai TINYINT DEFAULT 0, bb_staff_approvals_needed INT DEFAULT 1, bb_community_approvals_needed INT DEFAULT 1) ENGINE=InnoDB AUTO_INCREMENT=100");
         $db->queryWrite('INSERT INTO gdo_badger_badge (bb_id, bb_owner, bb_xp, bb_hp, bb_str, bb_int) VALUES (7, 11, 9, 2, 3, 4)');
         $db->queryWrite("CREATE TEMPORARY TABLE gdo_user (user_id INT PRIMARY KEY, user_name VARCHAR(64), user_type VARCHAR(32) DEFAULT 'member') ENGINE=InnoDB");
         $db->queryWrite("INSERT INTO gdo_user (user_id, user_name) VALUES (12, 'ranked-recipient'), (20, 'ranked-viewer')");
@@ -136,31 +136,31 @@ final class AchievementTransitionTest extends TestCase
         finally { $GLOBALS['me'] = $previousMethod; }
         self::assertSame('0', $db->queryRead("SELECT COUNT(*) AS n FROM gdo_usersetting WHERE uset_user=452 AND uset_name IN ('credits','bb_welcome_granted')")->fetch_assoc()['n']);
         $db->queryWrite('CREATE TEMPORARY TABLE gdo_pm (pm_id INT AUTO_INCREMENT PRIMARY KEY, pm_sent_at DATETIME, pm_deleted_at DATETIME, pm_read_at DATETIME, pm_owner INT, pm_from INT, pm_to INT, pm_folder INT, pm_parent INT, pm_other INT, pm_title VARCHAR(255), pm_message_input TEXT, pm_message_output TEXT, pm_message_text TEXT, pm_message_editor VARCHAR(32), pm_other_read_at DATETIME, pm_other_deleted_at DATETIME) ENGINE=InnoDB');
-        self::assertSame(['Hiking', 'Art'], \GDO\Badger\BadgeTags::parse('hiking, Hiking, Art'));
+        self::assertSame(['Hiking', 'Art'], \GDO\Badger\Service\BadgeTags::parse('hiking, Hiking, Art'));
         self::assertTrue($db->transactionBegin());
-        \GDO\Badger\BadgeTags::replace('7', ['Hiking', 'Art']);
-        self::assertSame(['Art', 'Hiking'], \GDO\Badger\BadgeTags::names('7'));
+        \GDO\Badger\Service\BadgeTags::replace('7', ['Hiking', 'Art']);
+        self::assertSame(['Art', 'Hiking'], \GDO\Badger\Service\BadgeTags::names('7'));
         $tagCell = \GDO\Badger\GDT_BadgeTags::make('badge_tags')->gdo(GDO_Badge::blank(['bb_id' => '7']));
         self::assertSame('Art, Hiking', $tagCell->renderCell());
-        \GDO\Badger\BadgeTags::replace('7', ['Art']);
-        self::assertSame(['Art'], \GDO\Badger\BadgeTags::names('7'));
+        \GDO\Badger\Service\BadgeTags::replace('7', ['Art']);
+        self::assertSame(['Art'], \GDO\Badger\Service\BadgeTags::names('7'));
         self::assertTrue($db->transactionRollback());
-        self::assertSame([], \GDO\Badger\BadgeTags::names('7'));
+        self::assertSame([], \GDO\Badger\Service\BadgeTags::names('7'));
         $db->queryWrite("INSERT INTO gdo_badger_badge (bb_id, bb_name, bb_owner, bb_visibility) VALUES (901, 'Public tag test', 11, 'acl_all'), (902, 'Private tag test', 11, 'acl_noone')");
         $db->queryWrite("INSERT INTO gdo_badger_tag (bt_badge, bt_name) VALUES (901, 'RareWord'), (902, 'RareWord')");
         $guest = GDO_User::blank(['user_type' => 'ghost']);
-        $tagQuery = \GDO\Badger\BadgeListing::query($guest);
+        $tagQuery = \GDO\Badger\Service\BadgeListing::query($guest);
         $tagFilter = \GDO\Table\GDT_Filter::make()->inputs(['f' => ['badge_tags' => 'rareword']]);
         \GDO\Badger\GDT_BadgeTags::make('badge_tags')->filterQuery($tagQuery, $tagFilter);
         $tagRows = $tagQuery->exec();
         $matched = [];
         while ($row = $tagRows->fetchAssoc()) { $matched[] = $row['bb_id']; }
         self::assertSame(['901'], $matched);
-        $tagQuery = \GDO\Badger\BadgeListing::query($guest);
+        $tagQuery = \GDO\Badger\Service\BadgeListing::query($guest);
         $tagFilter = \GDO\Table\GDT_Filter::make()->inputs(['f' => ['badge_tags' => "x' OR 1=1 --"]]);
         \GDO\Badger\GDT_BadgeTags::make('badge_tags')->filterQuery($tagQuery, $tagFilter);
         self::assertFalse((bool) $tagQuery->exec()->fetchAssoc());
-        $tagQuery = \GDO\Badger\BadgeListing::query($guest);
+        $tagQuery = \GDO\Badger\Service\BadgeListing::query($guest);
         $tagFilter = \GDO\Table\GDT_Filter::make()->inputs(['f' => ['badge_tags' => ['not-a-string']]]);
         \GDO\Badger\GDT_BadgeTags::make('badge_tags')->filterQuery($tagQuery, $tagFilter);
         $matched = [];
@@ -234,9 +234,10 @@ final class AchievementTransitionTest extends TestCase
             $config[$key] = $field->getVar();
             $field->var($value);
         }
-        try { $created = BadgeCreation::create($walletUser, ['bb_name' => 'Badge test'], 50, $rates, 200); }
+        try { $created = BadgeCreation::create($walletUser, ['bb_name' => 'Badge test', 'bb_country' => 'DE'], 50, $rates, 200); }
         finally { foreach ($config as $key => $value) { $module->getConfigColumn($key)->var($value); } }
         self::assertSame('Badge test', $created->gdoVar('bb_name'));
+        self::assertSame('DE', $created->gdoVar('bb_country'));
         self::assertSame('11', $created->gdoVar('bb_owner'));
         self::assertSame('0', $created->gdoVar('bb_verify_staff'));
         self::assertSame('2', $created->gdoVar('bb_staff_approvals_needed'));
@@ -309,7 +310,7 @@ final class AchievementTransitionTest extends TestCase
         self::assertTrue($db->transactionRollback());
         try
         {
-            \GDO\Badger\EquipmentPurchase::buy($staleMember, 50, 200);
+            \GDO\Badger\Service\EquipmentPurchase::buy($staleMember, 50, 200);
             self::fail('A deactivated owner must not purchase an equipment slot');
         }
         catch (\RuntimeException $ex) { self::assertSame('Invalid purchase', $ex->getMessage()); }
@@ -345,6 +346,7 @@ final class AchievementTransitionTest extends TestCase
         self::assertStringContainsString('data-xp=', $htmlContents);
         self::assertStringContainsString('<p>', $htmlContents);
         self::assertNotNull($addForm->getField('bb_name'));
+        self::assertNotNull($addForm->getField('bb_country'));
         self::assertSame('bb_description', $addForm->getField('bb_description')->labelKey);
         self::assertNotNull($addForm->getField('bb_has_image'));
         self::assertNotNull($addForm->getField('bb_xp'));
@@ -730,13 +732,13 @@ final class AchievementTransitionTest extends TestCase
         self::assertTrue($db->transactionBegin());
         try
         {
-            \GDO\Badger\BadgeRateLimit::check($applicant, 'claim', 1, time());
+            \GDO\Badger\Service\BadgeRateLimit::check($applicant, 'claim', 1, time());
             self::fail('A recent submission must count against the limit');
         }
         catch (\RuntimeException $ex) { self::assertSame('Badger rate limit exceeded', $ex->getMessage()); }
         finally { $db->transactionRollback(); }
         self::assertTrue($db->transactionBegin());
-        \GDO\Badger\BadgeRateLimit::check($applicant, 'claim', 1, time() + 3601);
+        \GDO\Badger\Service\BadgeRateLimit::check($applicant, 'claim', 1, time() + 3601);
         self::assertTrue($db->transactionRollback());
         $forged = Achieve::make()->inputs(['achievement' => $startId, 'action' => 'approve', 'visibility' => 'acl_noone', 'submit' => '1']);
         $forgedForm = $forged->getForm();
@@ -1003,7 +1005,7 @@ final class AchievementTransitionTest extends TestCase
         $correction = $db->queryRead("SELECT bat_reason, bat_actor_type FROM gdo_badger_attest WHERE bat_achieve=71 AND bat_from_status='revoked' AND bat_to_status='verified'")->fetch_assoc();
         self::assertSame(['bat_reason' => 'Revocation was mistaken', 'bat_actor_type' => 'staff'], $correction);
         $historyAward = GDO_Achieve::blank(['ba_id' => '71', 'ba_badge' => '71', 'ba_user' => '19', 'ba_status' => 'verified', 'ba_visibility' => 'acl_all', 'ba_deletion' => 'not_deleted']);
-        $history = \GDO\Badger\AchievementHistory::render($viewer, $equipper, $restoreBadge, $historyAward);
+        $history = \GDO\Badger\Service\AchievementHistory::render($viewer, $equipper, $restoreBadge, $historyAward);
         self::assertStringContainsString('Revocation was mistaken', $history);
         $db->queryWrite('UPDATE gdo_badger_badge SET bb_icon=9 WHERE bb_id=70');
         $profile = ProfileAchievements::render($equipper, $equipper);
@@ -1135,7 +1137,7 @@ final class AchievementTransitionTest extends TestCase
         try
         {
             $db->queryWrite("UPDATE gdo_badger_badge SET bb_verify_ai='Review the claim', bb_verify_ai_doc='Review the evidence' WHERE bb_id=90");
-            AchievementActions::transition($docUser, $docBadge, $docTarget, 'pending', null, true, true, \GDO\Badger\AIConsent::fingerprint());
+            AchievementActions::transition($docUser, $docBadge, $docTarget, 'pending', null, true, true, \GDO\Badger\Service\AIConsent::fingerprint());
             self::fail('Required evidence must be present before submission');
         }
         catch (\RuntimeException $ex)
@@ -1161,28 +1163,28 @@ final class AchievementTransitionTest extends TestCase
                 self::assertSame('Evidence already attached for this round', $ex->getMessage());
             }
             self::assertCount(3, scandir($vault));
-            AchievementActions::transition($docUser, $docBadge, $docTarget, 'pending', null, true, true, \GDO\Badger\AIConsent::fingerprint());
+            AchievementActions::transition($docUser, $docBadge, $docTarget, 'pending', null, true, true, \GDO\Badger\Service\AIConsent::fingerprint());
             $state = $db->queryRead('SELECT ba_status, ba_round FROM gdo_badger_achieve WHERE ba_id=90')->fetch_assoc();
             self::assertSame(['ba_status' => 'pending', 'ba_round' => '1'], $state);
-            $aiInput = \GDO\Badger\AIReviewInput::capture('90', $vault);
+            $aiInput = \GDO\Badger\Service\AIReviewInput::capture('90', $vault);
             self::assertSame('%PDF-1.4', $aiInput['document']);
             self::assertSame(hash('sha256', '%PDF-1.4'), $aiInput['request']['document_sha256']);
             self::assertSame(1, $aiInput['request']['round']);
             $db->queryWrite("UPDATE gdo_badger_badge SET bb_verify_ai='Changed rubric' WHERE bb_id=90");
-            self::assertNotSame($aiInput['fingerprint'], \GDO\Badger\AIReviewInput::capture('90', $vault)['fingerprint']);
+            self::assertNotSame($aiInput['fingerprint'], \GDO\Badger\Service\AIReviewInput::capture('90', $vault)['fingerprint']);
             try
             {
-                \GDO\Badger\AIReviewRecommendation::record('90', $vault, $aiInput['fingerprint'], 'test', 'mock', 'approve', 'Looks good');
+                \GDO\Badger\Service\AIReviewRecommendation::record('90', $vault, $aiInput['fingerprint'], 'test', 'mock', 'approve', 'Looks good');
                 self::fail('A result for changed inputs must not be recorded');
             }
             catch (\RuntimeException $ex) { self::assertSame('AI review changed concurrently', $ex->getMessage()); }
-            $freshInput = \GDO\Badger\AIReviewInput::capture('90', $vault);
-            \GDO\Badger\AIReviewRecommendation::record('90', $vault, $freshInput['fingerprint'], 'test', 'mock', 'approve', 'Looks good');
+            $freshInput = \GDO\Badger\Service\AIReviewInput::capture('90', $vault);
+            \GDO\Badger\Service\AIReviewRecommendation::record('90', $vault, $freshInput['fingerprint'], 'test', 'mock', 'approve', 'Looks good');
             $recommendation = $db->queryRead("SELECT bat_reason, bat_metadata FROM gdo_badger_attest WHERE bat_achieve=90 AND bat_decision='recommendation_approve'")->fetch_assoc();
             self::assertSame('Looks good', $recommendation['bat_reason']);
             self::assertSame($freshInput['fingerprint'], json_decode($recommendation['bat_metadata'], true)['snapshot_sha256']);
             self::assertSame('pending', $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=90')->fetch_assoc()['ba_status']);
-            $provider = new class implements \GDO\Badger\AIReviewProvider {
+            $provider = new class implements \GDO\Badger\Service\AIReviewProvider {
                 public function name(): string { return 'test'; }
                 public function review(array $request, ?string $document): array
                 {
@@ -1190,8 +1192,8 @@ final class AchievementTransitionTest extends TestCase
                     return ['model' => 'mock', 'decision' => 'approve', 'rationale' => 'Looks good'];
                 }
             };
-            self::assertFalse(\GDO\Badger\AIReviewRunner::run($provider, '90', $vault));
-            $privacyProvider = new class implements \GDO\Badger\AIReviewProvider {
+            self::assertFalse(\GDO\Badger\Service\AIReviewRunner::run($provider, '90', $vault));
+            $privacyProvider = new class implements \GDO\Badger\Service\AIReviewProvider {
                 public array $received = [];
                 public function name(): string { return 'privacy-test'; }
                 public function review(array $request, ?string $document): array
@@ -1201,7 +1203,7 @@ final class AchievementTransitionTest extends TestCase
                     return ['model' => 'mock', 'decision' => 'approve', 'rationale' => 'Looks good'];
                 }
             };
-            self::assertTrue(\GDO\Badger\AIReviewRunner::run($privacyProvider, '90', $vault));
+            self::assertTrue(\GDO\Badger\Service\AIReviewRunner::run($privacyProvider, '90', $vault));
             self::assertArrayNotHasKey('recipient', $privacyProvider->received);
             self::assertArrayNotHasKey('achievement', $privacyProvider->received);
             self::assertArrayNotHasKey('badge', $privacyProvider->received);
@@ -1209,10 +1211,10 @@ final class AchievementTransitionTest extends TestCase
             self::assertArrayNotHasKey('document_sha256', $privacyProvider->received);
             self::assertSame('Changed rubric', $privacyProvider->received['prompt']);
             self::assertSame('application/pdf', $privacyProvider->received['document_mime']);
-            self::assertNull(\GDO\Badger\AIReviewProviderFactory::create(''));
+            self::assertNull(\GDO\Badger\Service\AIReviewProviderFactory::create(''));
             try
             {
-                \GDO\Badger\AIReviewProviderFactory::create(\stdClass::class);
+                \GDO\Badger\Service\AIReviewProviderFactory::create(\stdClass::class);
                 self::fail('Only provider implementations may be configured');
             }
             catch (\RuntimeException $ex) { self::assertSame('Invalid AL provider configuration', $ex->getMessage()); }
@@ -1225,17 +1227,17 @@ final class AchievementTransitionTest extends TestCase
             $documentForm->getField('bb_verify_doc')->var('0');
             $documentEdit->formValidated($documentForm);
             self::assertSame('1', $db->queryRead('SELECT bb_verify_doc FROM gdo_badger_badge WHERE bb_id=90')->fetch_assoc()['bb_verify_doc']);
-            self::assertSame('%PDF-1.4', \GDO\Badger\EvidenceAccess::read($docUser, '90', $vault));
-            self::assertSame('%PDF-1.4', \GDO\Badger\EvidenceAccess::read($reviewer, '90', $vault));
+            self::assertSame('%PDF-1.4', \GDO\Badger\Service\EvidenceAccess::read($docUser, '90', $vault));
+            self::assertSame('%PDF-1.4', \GDO\Badger\Service\EvidenceAccess::read($reviewer, '90', $vault));
             try
             {
-                \GDO\Badger\EvidenceAccess::read(GDO_User::blank(['user_id' => '91', 'user_type' => 'guest']), '90', $vault);
+                \GDO\Badger\Service\EvidenceAccess::read(GDO_User::blank(['user_id' => '91', 'user_type' => 'guest']), '90', $vault);
                 self::fail('A guest identity must not access a member evidence record');
             }
             catch (\RuntimeException $ex) { self::assertSame('Evidence unavailable', $ex->getMessage()); }
             try
             {
-                \GDO\Badger\EvidenceAccess::read(GDO_User::blank(['user_id' => '84', 'user_type' => 'member']), '90', $vault);
+                \GDO\Badger\Service\EvidenceAccess::read(GDO_User::blank(['user_id' => '84', 'user_type' => 'member']), '90', $vault);
                 self::fail('An unrelated member must not access evidence');
             }
             catch (\RuntimeException $ex)
@@ -1245,19 +1247,19 @@ final class AchievementTransitionTest extends TestCase
             $docTarget->setVar('ba_status', 'pending')->setVar('ba_round', '1');
             try
             {
-                \GDO\Badger\EvidenceApproval::approve($docUser, $docTarget, $vault);
+                \GDO\Badger\Service\EvidenceApproval::approve($docUser, $docTarget, $vault);
                 self::fail('The recipient cannot approve their own document');
             }
             catch (\RuntimeException $ex)
             {
                 self::assertSame('Permission denied', $ex->getMessage());
             }
-            \GDO\Badger\EvidenceApproval::approve($reviewer, $docTarget, $vault);
-            self::assertTrue(\GDO\Badger\EvidenceApproval::approved('90', 1));
+            \GDO\Badger\Service\EvidenceApproval::approve($reviewer, $docTarget, $vault);
+            self::assertTrue(\GDO\Badger\Service\EvidenceApproval::approved('90', 1));
             self::assertSame('pending', $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=90')->fetch_assoc()['ba_status']);
             try
             {
-                \GDO\Badger\EvidenceApproval::approve($reviewer, $docTarget, $vault);
+                \GDO\Badger\Service\EvidenceApproval::approve($reviewer, $docTarget, $vault);
                 self::fail('Duplicate document approval must fail');
             }
             catch (\RuntimeException $ex)
@@ -1270,24 +1272,24 @@ final class AchievementTransitionTest extends TestCase
             $cleanupOriginalId = $cleanupModule->getID();
             $cleanupOriginalCursor = $cleanupModule->getConfigVar('bb_evidence_cleanup_cursor');
             $cleanupModule->setVar('module_id', $db->queryRead('SELECT module_id FROM gdo_module ORDER BY module_id LIMIT 1')->fetch_assoc()['module_id']);
-            self::assertSame(1, \GDO\Badger\EvidenceCleanup::run($vault, 604800, time()));
+            self::assertSame(1, \GDO\Badger\Service\EvidenceCleanup::run($vault, 604800, time()));
             self::assertFalse(is_file($vault . '/' . $key));
             $afterCleanup = $db->queryRead('SELECT be_deleted, be_sha256 FROM gdo_badger_evidence WHERE be_achieve=90')->fetch_assoc();
             self::assertSame('1', $afterCleanup['be_deleted']);
             self::assertSame(hash('sha256', '%PDF-1.4'), $afterCleanup['be_sha256']);
-            self::assertSame(0, \GDO\Badger\EvidenceCleanup::run($vault, 604800, time()));
+            self::assertSame(0, \GDO\Badger\Service\EvidenceCleanup::run($vault, 604800, time()));
             $secondEvidence = EvidenceVault::store($vault, '%PDF-1.5', 1000, ['application/pdf'], fn () => true);
             $secondKey = $secondEvidence['key'];
             try
             {
                 $db->queryWrite("INSERT INTO gdo_badger_evidence (be_achieve, be_round, be_key, be_sha256, be_mime, be_size) VALUES (90, 2, '{$secondKey}', '{$secondEvidence['sha256']}', 'application/pdf', 8)");
-                self::assertSame(0, \GDO\Badger\EvidenceCleanup::run($vault, 604800, time()));
+                self::assertSame(0, \GDO\Badger\Service\EvidenceCleanup::run($vault, 604800, time()));
                 $db->queryWrite("INSERT INTO gdo_badger_attest (bat_achieve, bat_actor_type, bat_decision, bat_round, bat_to_status, bat_created) VALUES (90, 'staff', 'rejected', 2, 'rejected', NOW())");
-                self::assertSame(0, \GDO\Badger\EvidenceCleanup::run($vault, 604800, time()));
+                self::assertSame(0, \GDO\Badger\Service\EvidenceCleanup::run($vault, 604800, time()));
                 self::assertTrue(is_file($vault . '/' . $secondKey));
                 $db->queryWrite("UPDATE gdo_badger_achieve SET ba_status='rejected', ba_round=2 WHERE ba_id=90");
                 $rejectedTarget = GDO_Achieve::blank(['ba_id' => '90', 'ba_badge' => '90', 'ba_user' => $docUser->getID(), 'ba_status' => 'rejected', 'ba_round' => '2']);
-                self::assertTrue(\GDO\Badger\EvidenceAccess::hasCurrentEvidence($rejectedTarget));
+                self::assertTrue(\GDO\Badger\Service\EvidenceAccess::hasCurrentEvidence($rejectedTarget));
                 GDO_Achieve::getById('90')?->uncache();
                 GDO_User::setCurrent($reviewer);
                 $rejectedForm = Achieve::make()->inputs(['achievement' => '90'])->getForm();
@@ -1295,20 +1297,20 @@ final class AchievementTransitionTest extends TestCase
                 GDO_User::setCurrent($docUser);
                 $recipientRejectedForm = Achieve::make()->inputs(['achievement' => '90'])->getForm();
                 self::assertNotContains('delete_evidence', $recipientRejectedForm->getField('action')->enumValues);
-                self::assertSame('%PDF-1.5', \GDO\Badger\EvidenceAccess::read($reviewer, '90', $vault));
+                self::assertSame('%PDF-1.5', \GDO\Badger\Service\EvidenceAccess::read($reviewer, '90', $vault));
                 try
                 {
-                    \GDO\Badger\EvidenceDeletion::removeRejected($docUser, $rejectedTarget, $vault);
+                    \GDO\Badger\Service\EvidenceDeletion::removeRejected($docUser, $rejectedTarget, $vault);
                     self::fail('The recipient must not delete rejected evidence as staff');
                 }
                 catch (\RuntimeException $ex) { self::assertSame('Evidence unavailable', $ex->getMessage()); }
                 self::assertTrue(is_file($vault . '/' . $secondKey));
-                \GDO\Badger\EvidenceDeletion::removeRejected($reviewer, $rejectedTarget, $vault);
+                \GDO\Badger\Service\EvidenceDeletion::removeRejected($reviewer, $rejectedTarget, $vault);
                 self::assertFalse(is_file($vault . '/' . $secondKey));
                 $retained = $db->queryRead('SELECT be_deleted, be_sha256 FROM gdo_badger_evidence WHERE be_achieve=90 AND be_round=2')->fetch_assoc();
                 self::assertSame('1', $retained['be_deleted']);
                 self::assertSame($secondEvidence['sha256'], $retained['be_sha256']);
-                self::assertFalse(\GDO\Badger\EvidenceAccess::hasCurrentEvidence($rejectedTarget));
+                self::assertFalse(\GDO\Badger\Service\EvidenceAccess::hasCurrentEvidence($rejectedTarget));
                 GDO_User::setCurrent($reviewer);
                 $deletedForm = Achieve::make()->inputs(['achievement' => '90'])->getForm();
                 self::assertNotContains('delete_evidence', $deletedForm->getField('action')->enumValues);
@@ -1316,7 +1318,7 @@ final class AchievementTransitionTest extends TestCase
                 $thirdKey = $thirdEvidence['key'];
                 $db->queryWrite("INSERT INTO gdo_badger_evidence (be_achieve, be_round, be_key, be_sha256, be_mime, be_size) VALUES (90, 3, '{$thirdKey}', '{$thirdEvidence['sha256']}', 'application/pdf', 8)");
                 $db->queryWrite("INSERT INTO gdo_badger_attest (bat_achieve, bat_actor_type, bat_decision, bat_round, bat_to_status, bat_created) VALUES (90, 'staff', 'rejected', 3, 'rejected', NOW())");
-                self::assertSame(1, \GDO\Badger\EvidenceCleanup::run($vault, 604800, time() + 604801));
+                self::assertSame(1, \GDO\Badger\Service\EvidenceCleanup::run($vault, 604800, time() + 604801));
                 self::assertFalse(is_file($vault . '/' . $thirdKey));
             }
             finally { EvidenceVault::remove($vault, $secondKey); }
@@ -1331,14 +1333,14 @@ final class AchievementTransitionTest extends TestCase
                 self::assertTrue(symlink($vault . '/' . $laterEvidence['key'], $faultPath));
                 $cleanupFailures = 0;
                 $onCleanupError = static function () use (&$cleanupFailures): void { $cleanupFailures++; };
-                self::assertSame(0, \GDO\Badger\EvidenceCleanup::run($vault, 604800, time() + 604801, 1, $onCleanupError));
+                self::assertSame(0, \GDO\Badger\Service\EvidenceCleanup::run($vault, 604800, time() + 604801, 1, $onCleanupError));
                 self::assertSame(1, $cleanupFailures);
-                self::assertSame(1, \GDO\Badger\EvidenceCleanup::run($vault, 604800, time() + 604801, 1, $onCleanupError));
+                self::assertSame(1, \GDO\Badger\Service\EvidenceCleanup::run($vault, 604800, time() + 604801, 1, $onCleanupError));
                 self::assertFalse(is_file($vault . '/' . $laterEvidence['key']));
                 self::assertTrue(unlink($faultPath));
                 file_put_contents($faultPath, '%PDF-1.7');
                 chmod($faultPath, 0600);
-                self::assertSame(1, \GDO\Badger\EvidenceCleanup::run($vault, 604800, time() + 604801, 1, $onCleanupError));
+                self::assertSame(1, \GDO\Badger\Service\EvidenceCleanup::run($vault, 604800, time() + 604801, 1, $onCleanupError));
                 self::assertFalse(is_file($faultPath));
             }
             finally
@@ -1376,7 +1378,7 @@ final class AchievementTransitionTest extends TestCase
         }
         catch (\RuntimeException $ex) { self::assertSame('AI consent required', $ex->getMessage()); }
         GDO_User::setCurrent($docUser);
-        $aiSubmit = Achieve::make()->inputs(['achievement' => '93', 'action' => 'submit', 'claim_message' => 'Evidence in words', 'ai_consent' => '1', 'ai_consent_fingerprint' => \GDO\Badger\AIConsent::fingerprint(), 'visibility' => 'acl_all', 'submit' => '1']);
+        $aiSubmit = Achieve::make()->inputs(['achievement' => '93', 'action' => 'submit', 'claim_message' => 'Evidence in words', 'ai_consent' => '1', 'ai_consent_fingerprint' => \GDO\Badger\Service\AIConsent::fingerprint(), 'visibility' => 'acl_all', 'submit' => '1']);
         $aiSubmitForm = $aiSubmit->getForm();
         self::assertNotEmpty(array_filter($aiSubmitForm->getAllFields(), static fn($field) => $field instanceof \GDO\UI\GDT_HTML));
         self::assertNotNull($aiSubmitForm->getField('ai_consent'));
@@ -1387,8 +1389,8 @@ final class AchievementTransitionTest extends TestCase
         $savedConsent = $db->queryRead("SELECT bat_metadata FROM gdo_badger_attest WHERE bat_achieve=93 AND bat_to_status='pending'")->fetch_assoc();
         self::assertTrue(json_decode($savedConsent['bat_metadata'], true)['ai_consent']);
         $aiTarget->setVar('ba_status', 'pending')->setVar('ba_round', '1');
-        $input = \GDO\Badger\AIReviewInput::capture('93', '');
-        \GDO\Badger\AIReviewRecommendation::record('93', '', $input['fingerprint'], 'test', 'mock', 'approve', 'Meets rubric');
+        $input = \GDO\Badger\Service\AIReviewInput::capture('93', '');
+        \GDO\Badger\Service\AIReviewRecommendation::record('93', '', $input['fingerprint'], 'test', 'mock', 'approve', 'Meets rubric');
         self::assertSame('pending', $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=93')->fetch_assoc()['ba_status']);
         AchievementActions::approve($reviewer, $aiBadge, $aiTarget);
         self::assertSame('verified', $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=93')->fetch_assoc()['ba_status']);
@@ -1396,10 +1398,10 @@ final class AchievementTransitionTest extends TestCase
         $db->queryWrite("INSERT INTO gdo_badger_achieve (ba_id, ba_badge, ba_user, ba_status) VALUES (94, 94, 91, 'viewed')");
         $staleBadge = GDO_Badge::blank(['bb_id' => '94', 'bb_owner' => '11']);
         $staleTarget = GDO_Achieve::blank(['ba_id' => '94', 'ba_badge' => '94', 'ba_user' => '91', 'ba_status' => 'viewed']);
-        AchievementActions::transition($docUser, $staleBadge, $staleTarget, 'pending', 'Hello', true, true, \GDO\Badger\AIConsent::fingerprint());
+        AchievementActions::transition($docUser, $staleBadge, $staleTarget, 'pending', 'Hello', true, true, \GDO\Badger\Service\AIConsent::fingerprint());
         $staleTarget->setVar('ba_status', 'pending')->setVar('ba_round', '1');
-        $staleInput = \GDO\Badger\AIReviewInput::capture('94', '');
-        \GDO\Badger\AIReviewRecommendation::record('94', '', $staleInput['fingerprint'], 'test', 'mock', 'approve', 'Approved');
+        $staleInput = \GDO\Badger\Service\AIReviewInput::capture('94', '');
+        \GDO\Badger\Service\AIReviewRecommendation::record('94', '', $staleInput['fingerprint'], 'test', 'mock', 'approve', 'Approved');
         $db->queryWrite("UPDATE gdo_badger_badge SET bb_verify_ai='Changed' WHERE bb_id=94");
         AchievementActions::approve($reviewer, $staleBadge, $staleTarget);
         self::assertSame('pending', $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=94')->fetch_assoc()['ba_status']);
@@ -1407,17 +1409,17 @@ final class AchievementTransitionTest extends TestCase
         $db->queryWrite("INSERT INTO gdo_badger_achieve (ba_id, ba_badge, ba_user, ba_status) VALUES (197, 96, 91, 'viewed')");
         $manualBadge = GDO_Badge::blank(['bb_id' => '96', 'bb_owner' => '11']);
         $manualTarget = GDO_Achieve::blank(['ba_id' => '197', 'ba_badge' => '96', 'ba_user' => '91', 'ba_status' => 'viewed']);
-        AchievementActions::transition($docUser, $manualBadge, $manualTarget, 'pending', 'Hello', true, true, \GDO\Badger\AIConsent::fingerprint());
+        AchievementActions::transition($docUser, $manualBadge, $manualTarget, 'pending', 'Hello', true, true, \GDO\Badger\Service\AIConsent::fingerprint());
         $manualTarget->setVar('ba_status', 'pending')->setVar('ba_round', '1');
-        $manualInput = \GDO\Badger\AIReviewInput::capture('197', '');
-        \GDO\Badger\AIReviewRecommendation::record('197', '', $manualInput['fingerprint'], 'test', 'mock', 'approve', 'Looks good');
+        $manualInput = \GDO\Badger\Service\AIReviewInput::capture('197', '');
+        \GDO\Badger\Service\AIReviewRecommendation::record('197', '', $manualInput['fingerprint'], 'test', 'mock', 'approve', 'Looks good');
         try
         {
-            \GDO\Badger\AIReviewHumanApproval::accept($docUser, $manualTarget, '');
+            \GDO\Badger\Service\AIReviewHumanApproval::accept($docUser, $manualTarget, '');
             self::fail('The recipient cannot accept the AI review');
         }
         catch (\RuntimeException $ex) { self::assertSame('Permission denied', $ex->getMessage()); }
-        \GDO\Badger\AIReviewHumanApproval::accept($reviewer, $manualTarget, '');
+        \GDO\Badger\Service\AIReviewHumanApproval::accept($reviewer, $manualTarget, '');
         self::assertSame('pending', $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=197')->fetch_assoc()['ba_status']);
         AchievementActions::approve($reviewer, $manualBadge, $manualTarget);
         self::assertSame('verified', $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=197')->fetch_assoc()['ba_status']);
@@ -1425,9 +1427,9 @@ final class AchievementTransitionTest extends TestCase
         $db->queryWrite("INSERT INTO gdo_badger_achieve (ba_id, ba_badge, ba_user, ba_status, ba_is_staff) VALUES (195, 195, 91, 'viewed', 0), (196, 195, 14, 'viewed', 1)");
         $rejectBadge = GDO_Badge::blank(['bb_id' => '195', 'bb_owner' => '11']);
         $rejectTarget = GDO_Achieve::blank(['ba_id' => '195', 'ba_badge' => '195', 'ba_user' => '91', 'ba_status' => 'viewed']);
-        AchievementActions::transition($docUser, $rejectBadge, $rejectTarget, 'pending', 'Please review', true, true, \GDO\Badger\AIConsent::fingerprint());
-        $rejectInput = \GDO\Badger\AIReviewInput::capture('195', '');
-        \GDO\Badger\AIReviewRecommendation::record('195', '', $rejectInput['fingerprint'], 'test', 'mock', 'reject', 'Missing requirement');
+        AchievementActions::transition($docUser, $rejectBadge, $rejectTarget, 'pending', 'Please review', true, true, \GDO\Badger\Service\AIConsent::fingerprint());
+        $rejectInput = \GDO\Badger\Service\AIReviewInput::capture('195', '');
+        \GDO\Badger\Service\AIReviewRecommendation::record('195', '', $rejectInput['fingerprint'], 'test', 'mock', 'reject', 'Missing requirement');
         self::assertSame('rejected', $db->queryRead('SELECT ba_status FROM gdo_badger_achieve WHERE ba_id=195')->fetch_assoc()['ba_status']);
         $notices = $db->queryRead('SELECT bn_user FROM gdo_badger_review_notice ORDER BY bn_user')->fetch_all(MYSQLI_ASSOC);
         self::assertSame(['11', '14'], array_column($notices, 'bn_user'));
@@ -1438,20 +1440,20 @@ final class AchievementTransitionTest extends TestCase
         $testModule->setVar('module_id', $testModuleId);
         $testModule->getConfigColumn('bb_notice_cursor')->var('0:0');
         $noticeErrors = 0;
-        $failed = \GDO\Badger\ReviewNotices::deliver(100, static function (): void { throw new \RuntimeException('delivery failed'); }, static function () use (&$noticeErrors): void { $noticeErrors++; });
+        $failed = \GDO\Badger\Service\ReviewNotices::deliver(100, static function (): void { throw new \RuntimeException('delivery failed'); }, static function () use (&$noticeErrors): void { $noticeErrors++; });
         self::assertSame(0, $failed);
         self::assertSame(2, $noticeErrors);
         self::assertSame('0', $db->queryRead('SELECT COUNT(*) AS n FROM gdo_badger_review_notice WHERE bn_delivered=1')->fetch_assoc()['n']);
         $testModule->getConfigColumn('bb_notice_cursor')->var('0:0');
-        self::assertSame(0, \GDO\Badger\ReviewNotices::deliver(1, static function (): void { throw new \RuntimeException('delivery failed'); }, static function (): void {}));
+        self::assertSame(0, \GDO\Badger\Service\ReviewNotices::deliver(1, static function (): void { throw new \RuntimeException('delivery failed'); }, static function (): void {}));
         self::assertStringEndsWith(':11', $testModule->getConfigVar('bb_notice_cursor'));
         $laterNotice = [];
-        self::assertSame(1, \GDO\Badger\ReviewNotices::deliver(1, static function (string $userId) use (&$laterNotice): void { $laterNotice[] = $userId; }));
+        self::assertSame(1, \GDO\Badger\Service\ReviewNotices::deliver(1, static function (string $userId) use (&$laterNotice): void { $laterNotice[] = $userId; }));
         self::assertSame(['14'], $laterNotice);
         $db->queryWrite('UPDATE gdo_badger_review_notice SET bn_delivered=0 WHERE bn_user=14');
         $testModule->getConfigColumn('bb_notice_cursor')->var('0:0');
         $sameBatch = [];
-        self::assertSame(1, \GDO\Badger\ReviewNotices::deliver(100, static function (string $userId) use (&$sameBatch): void {
+        self::assertSame(1, \GDO\Badger\Service\ReviewNotices::deliver(100, static function (string $userId) use (&$sameBatch): void {
             if ($userId === '11') { throw new \RuntimeException('simulated failure'); }
             $sameBatch[] = $userId;
         }, static function (): void {}));
@@ -1459,39 +1461,39 @@ final class AchievementTransitionTest extends TestCase
         $storedNoticeCursor = $db->queryRead("SELECT mv_value FROM gdo_modulevar WHERE mv_module=" . (int) $testModuleId . " AND mv_name='bb_notice_cursor'")->fetch_assoc();
         self::assertSame($testModule->getConfigVar('bb_notice_cursor'), $storedNoticeCursor['mv_value']);
         $retried = [];
-        self::assertSame(1, \GDO\Badger\ReviewNotices::deliver(1, static function (string $userId) use (&$retried): void { $retried[] = $userId; }));
+        self::assertSame(1, \GDO\Badger\Service\ReviewNotices::deliver(1, static function (string $userId) use (&$retried): void { $retried[] = $userId; }));
         self::assertSame(['11'], $retried);
         $db->queryWrite('UPDATE gdo_badger_review_notice SET bn_delivered=0 WHERE bn_user=11');
         $db->queryWrite('UPDATE gdo_badger_review_notice SET bn_delivered=0 WHERE bn_user=14');
         $db->queryWrite('UPDATE gdo_badger_achieve SET ba_is_staff=0 WHERE ba_id=196');
         $sentNotices = [];
-        $sent = \GDO\Badger\ReviewNotices::deliver(100, static function (string $userId, string $achievementId) use (&$sentNotices): void { $sentNotices[] = [$userId, $achievementId]; });
+        $sent = \GDO\Badger\Service\ReviewNotices::deliver(100, static function (string $userId, string $achievementId) use (&$sentNotices): void { $sentNotices[] = [$userId, $achievementId]; });
         self::assertSame(1, $sent);
         self::assertSame([['11', '195']], $sentNotices);
-        self::assertSame(0, \GDO\Badger\ReviewNotices::deliver(100, static function (): void { throw new \RuntimeException('duplicate'); }));
+        self::assertSame(0, \GDO\Badger\Service\ReviewNotices::deliver(100, static function (): void { throw new \RuntimeException('duplicate'); }));
         $db->queryWrite('UPDATE gdo_badger_review_notice SET bn_delivered=0 WHERE bn_user=11');
-        self::assertSame(1, \GDO\Badger\ReviewNotices::deliver());
+        self::assertSame(1, \GDO\Badger\Service\ReviewNotices::deliver());
         $inbox = $db->queryRead('SELECT pm_to, pm_title, pm_message_input FROM gdo_pm WHERE pm_owner=11 AND pm_folder=1')->fetch_assoc();
         self::assertSame('11', $inbox['pm_to']);
         self::assertStringContainsString('195', $inbox['pm_message_input']);
         self::assertStringNotContainsString('Missing requirement', $inbox['pm_message_input']);
-        self::assertSame(0, \GDO\Badger\ReviewNotices::deliver());
+        self::assertSame(0, \GDO\Badger\Service\ReviewNotices::deliver());
         self::assertSame('1', $db->queryRead('SELECT COUNT(*) AS n FROM gdo_pm WHERE pm_owner=11 AND pm_folder=1')->fetch_assoc()['n']);
         $db->queryWrite("INSERT INTO gdo_badger_achieve (ba_badge, ba_user, ba_status, ba_is_staff) VALUES (195, 454, 'viewed', 1)");
         $db->queryWrite('INSERT INTO gdo_badger_review_notice (bn_attest, bn_user, bn_delivered) SELECT bn_attest, 454, 0 FROM gdo_badger_review_notice WHERE bn_user=11 LIMIT 1');
         $inactiveNoticeSent = false;
-        self::assertSame(0, \GDO\Badger\ReviewNotices::deliver(100, static function () use (&$inactiveNoticeSent): void { $inactiveNoticeSent = true; }));
+        self::assertSame(0, \GDO\Badger\Service\ReviewNotices::deliver(100, static function () use (&$inactiveNoticeSent): void { $inactiveNoticeSent = true; }));
         self::assertFalse($inactiveNoticeSent);
         self::assertSame('1', $db->queryRead('SELECT bn_delivered FROM gdo_badger_review_notice WHERE bn_user=454')->fetch_assoc()['bn_delivered']);
         $db->queryWrite("INSERT INTO gdo_user (user_id, user_name) VALUES (92, 'slotbuyer')");
         $slotBuyer = GDO_User::blank(['user_id' => '92', 'user_type' => 'member']);
-        \GDO\Badger\EquipmentPurchase::buy($slotBuyer, 50, 200);
+        \GDO\Badger\Service\EquipmentPurchase::buy($slotBuyer, 50, 200);
         $slotSettings = $db->queryRead("SELECT uset_name, uset_var FROM gdo_usersetting WHERE uset_user=92 ORDER BY uset_name")->fetch_all(MYSQLI_ASSOC);
         self::assertSame(['bb_add_max_equip', 'bb_welcome_granted', 'credits'], array_column($slotSettings, 'uset_name'));
         self::assertSame(['1', '1', '150'], array_column($slotSettings, 'uset_var'));
         try
         {
-            \GDO\Badger\EquipmentPurchase::buy($slotBuyer, 1000, 200);
+            \GDO\Badger\Service\EquipmentPurchase::buy($slotBuyer, 1000, 200);
             self::fail('Insufficient credits must not buy a slot');
         }
         catch (\RuntimeException $ex) { self::assertSame('Insufficient credits', $ex->getMessage()); }
@@ -1500,15 +1502,15 @@ final class AchievementTransitionTest extends TestCase
         $transferBadge = GDO_Badge::blank(['bb_id' => '92', 'bb_owner' => '11']);
         try
         {
-            \GDO\Badger\BadgeOwnership::transfer($docUser, $transferBadge, $docUser);
+            \GDO\Badger\Service\BadgeOwnership::transfer($docUser, $transferBadge, $docUser);
             self::fail('A non-owner cannot transfer a badge');
         }
         catch (\RuntimeException $ex) { self::assertSame('Permission denied', $ex->getMessage()); }
-        \GDO\Badger\BadgeOwnership::transfer($reviewer, $transferBadge, $docUser);
+        \GDO\Badger\Service\BadgeOwnership::transfer($reviewer, $transferBadge, $docUser);
         self::assertSame('91', $db->queryRead('SELECT bb_owner FROM gdo_badger_badge WHERE bb_id=92')->fetch_assoc()['bb_owner']);
         try
         {
-            \GDO\Badger\BadgeOwnership::transfer($reviewer, $transferBadge, $reviewer);
+            \GDO\Badger\Service\BadgeOwnership::transfer($reviewer, $transferBadge, $reviewer);
             self::fail('The previous owner cannot transfer again');
         }
         catch (\RuntimeException $ex) { self::assertSame('Permission denied', $ex->getMessage()); }

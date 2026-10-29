@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\BadgeListing;
+use GDO\Badger\Service\BadgeListing;
 use GDO\Badger\GDO_Badge;
 use GDO\Badger\GDT_BadgeAction;
 use GDO\Badger\GDT_BadgeTags;
@@ -20,6 +20,6 @@ final class Badges extends MethodQueryTable
     public function gdoHeaders(): array
     {
         $badge = GDO_Badge::table();
-        return [GDT_BadgeIcon::make('bb_icon')->label('bb_icon'), $badge->gdoColumn('bb_name'), $badge->gdoColumn('bb_description'), GDT_BadgeTags::make('badge_tags')->label('badger_tags'), GDT_BadgeAction::make('bb_id')->label('badger_request')];
+        return [GDT_BadgeIcon::make('bb_icon')->label('bb_icon'), $badge->gdoColumn('bb_name'), $badge->gdoColumn('bb_description'), $badge->gdoColumn('bb_country'), GDT_BadgeTags::make('badge_tags')->label('badger_tags'), GDT_BadgeAction::make('bb_id')->label('badger_request')];
     }
 }

@@ -2,8 +2,8 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\EvidenceAttachments;
-use GDO\Badger\EvidenceScanner;
+use GDO\Badger\Service\EvidenceAttachments;
+use GDO\Badger\Service\EvidenceScanner;
 use GDO\Badger\GDO_Achieve;
 use GDO\Badger\GDT_EvidenceUpload;
 use GDO\Badger\Module_Badger;

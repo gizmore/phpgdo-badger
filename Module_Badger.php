@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 namespace GDO\Badger;
 
+use GDO\Badger\Service\BadgeCredits;
+use GDO\Badger\Service\CategoryTree;
+use GDO\Badger\Service\ItemEquipment;
+use GDO\Badger\Service\ProfileAchievements;
+
 use GDO\Badger\install\BadgerInstall;
 use GDO\Core\GDO_Module;
 use GDO\Core\Method;
@@ -94,8 +99,10 @@ final class Module_Badger extends GDO_Module
             'Captcha',
             'Category',
             'CLI',
+            'Country',
             'Cronjob',
-            'Forum', 'Friends',
+            'FontAwesome', 'Forum', 'Friends',
+            'JQueryAutocomplete',
             'News',
             'PaymentAdmin', 'PaymentPaypal', 'PaymentCredits',
             'PM',

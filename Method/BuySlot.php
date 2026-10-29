@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\EquipmentPurchase;
+use GDO\Badger\Service\EquipmentPurchase;
 use GDO\Badger\Module_Badger;
 use GDO\Core\GDT;
 use GDO\Form\GDT_AntiCSRF;

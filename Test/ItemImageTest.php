@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Test;
 
-use GDO\Badger\ItemImage;
+use GDO\Badger\Service\ItemImage;
 use GDO\Badger\GDT_ItemUpload;
 use GDO\Form\GDT_Form;
 use PHPUnit\Framework\TestCase;

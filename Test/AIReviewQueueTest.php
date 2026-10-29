@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Test;
 
-use GDO\Badger\AIReviewQueue;
+use GDO\Badger\Service\AIReviewQueue;
 use PHPUnit\Framework\TestCase;
 
 final class AIReviewQueueTest extends TestCase

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Test;
 
-use GDO\Badger\EvidenceVault;
+use GDO\Badger\Service\EvidenceVault;
 use PHPUnit\Framework\TestCase;
 
 final class EvidenceVaultTest extends TestCase
@@ -87,7 +87,7 @@ final class EvidenceVaultTest extends TestCase
         self::assertTrue(mkdir($dir, 0700));
         try
         {
-            $code = 'define("GDO_PATH", $argv[1]); require $argv[1] . "GDO/Badger/EvidenceVault.php"; echo function_exists("posix_geteuid") ? "enabled" : (\\GDO\\Badger\\EvidenceVault::isReady($argv[2]) ? "unsafe" : "rejected");';
+            $code = 'define("GDO_PATH", $argv[1]); require $argv[1] . "GDO/Badger/Service/EvidenceVault.php"; echo function_exists("posix_geteuid") ? "enabled" : (\\GDO\\Badger\\Service\\EvidenceVault::isReady($argv[2]) ? "unsafe" : "rejected");';
             $process = proc_open([PHP_BINARY, '-d', 'disable_functions=posix_geteuid', '-r', $code, GDO_PATH, $dir],
                 [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
             self::assertIsResource($process);

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\BadgeOwnership;
+use GDO\Badger\Service\BadgeOwnership;
 use GDO\Badger\GDO_Badge;
 use GDO\Core\GDT;
 use GDO\Core\GDT_Object;

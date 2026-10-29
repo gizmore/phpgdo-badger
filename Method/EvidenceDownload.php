@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\EvidenceAccess;
+use GDO\Badger\Service\EvidenceAccess;
 use GDO\Badger\Module_Badger;
 use GDO\Core\Application;
 use GDO\Core\GDT;

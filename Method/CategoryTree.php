@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\CategoryTree as TreeManager;
+use GDO\Badger\Service\CategoryTree as TreeManager;
 use GDO\Badger\GDO_Category;
 use GDO\Badger\GDT_BadgeTree;
 use GDO\Badger\GDO_Badge;

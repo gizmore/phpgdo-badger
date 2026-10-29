@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Test;
 
-use GDO\Badger\OllamaAIReviewProvider;
+use GDO\Badger\Service\OllamaAIReviewProvider;
 use PHPUnit\Framework\TestCase;
 
 final class OllamaAIReviewProviderTest extends TestCase

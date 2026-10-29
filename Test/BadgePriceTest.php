@@ -2,8 +2,8 @@
 declare(strict_types=1);
 namespace GDO\Badger\Test;
 
-use GDO\Badger\BadgePrice;
-use GDO\Badger\BadgeCreation;
+use GDO\Badger\Service\BadgePrice;
+use GDO\Badger\Service\BadgeCreation;
 use PHPUnit\Framework\TestCase;
 
 final class BadgePriceTest extends TestCase

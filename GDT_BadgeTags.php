@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace GDO\Badger;
 
+use GDO\Badger\Service\BadgeTags;
+
 use GDO\Core\GDT_String;
 use GDO\DB\Query;
 use GDO\Table\GDT_Filter;

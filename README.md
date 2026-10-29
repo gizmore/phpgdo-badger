@@ -6,6 +6,10 @@ keeps a small auditable record of the decisions. Its initial RPG-style rewards
 are cosmetic: an achievement can show a new item, image, XP or stats without
 changing unrelated game mechanics.
 
+Domain services, policy checks, render helpers and AI provider implementations
+live in `Service/` under `GDO\Badger\Service`. The module root keeps GDOs,
+GDTs and `Module_Badger`; HTTP/CLI methods remain in `Method/`.
+
 Deployment uses a dedicated `phpgdo_badger` database and a Badger-specific
 configuration. For now, select an instance manually by copying its protected
 configuration variant to `protected/config.php`; this selection applies to
@@ -199,6 +203,8 @@ change it using the available relationship-based ACL options.
 - bb_item_<x|y|w|h> (position of the avatar item)
 - bb_item_name
 - bb_category
+- bb_country: optional country; empty input is stored as NULL and displayed as
+  “None”. It can be set or cleared when creating or editing a badge.
 - bb_<xp|hp|str|int>
 - and more...
 
@@ -253,8 +259,8 @@ price when the form is submitted.
 
 ### Initial badge seeds
 
-On a fresh installation, the configured Gizmore seed account owns two groups:
-Caretaker (Cleanse Togetherness) and Bookworm (Reading). Each has a root badge,
+On a fresh installation, the configured Gizmore seed account owns three groups:
+Caretaker (Cleanse Togetherness), Bookworm (Reading) and CBA. Each has a root badge,
 its own category and the listed cleaning or reading achievements. Badger does
 not yet support parent-child badge relationships: the root badge and its
 achievements share the category, rather than implying a prerequisite. Each
@@ -262,6 +268,13 @@ group shares its own icon; the roots grant the Golden WC Brush and the
 Page-turning Book items. The book item visually turns a page when equipped;
 reduced-motion preferences suppress this animation. Seeding is only part of
 installation; it does not modify an existing live installation automatically.
+
+CBA adds a playful backwards-spelling group: spell your name backwards, learn
+from midpoint M halfway down, reverse a short word, learn from Z halfway down,
+memorize remaining errors, and finally recite the alphabet backwards. Its root
+grants a Möbius Compass and the error-memory milestone grants a Tesseract Lantern. Optional per-leaf
+icons and items are seeded like root assets; other leaves inherit their group's
+icon. The category is an organizational group, not an enforced prerequisite.
 
 `Badger.FAQ` explains the basic badge and achievement workflow. Its heading
 uses the optional JQuery candle effect in the UI module's theme color; the page
@@ -388,7 +401,7 @@ module prefix, so no class name needs `Badger` embedded in it.
 - `GDO_Badge` → `gdo_badger_badge`: issuer/owner, text, category/tags,
   overview-background `bb_image`, table/profile `bb_icon`, transparent and
   optionally animated `bb_item`, `bb_item_<x|y|w|h>`, `bb_item_name`,
-  `bb_category`, cosmetic
+  `bb_category`, nullable country `bb_country`, cosmetic
   `bb_<xp|hp|str|int>`, verification fields, default visibility and
   active/archived state. Badges are edited in place; there is no version field.
 - `GDO_Achieve` → `gdo_badger_achieve`: badge, recipient, verification status,

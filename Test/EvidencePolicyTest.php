@@ -2,8 +2,8 @@
 declare(strict_types=1);
 namespace GDO\Badger\Test;
 
-use GDO\Badger\EvidencePolicy;
-use GDO\Badger\EvidenceScanner;
+use GDO\Badger\Service\EvidencePolicy;
+use GDO\Badger\Service\EvidenceScanner;
 use PHPUnit\Framework\TestCase;
 
 final class EvidencePolicyTest extends TestCase
@@ -72,8 +72,8 @@ final class EvidencePolicyTest extends TestCase
         self::assertTrue(mkdir($directory, 0700));
         try
         {
-            $code = 'require $argv[1]; if (sys_get_temp_dir() !== $argv[2]) { echo "wrong-temp"; exit(1); } echo \\GDO\\Badger\\EvidenceScanner::scan("/usr/bin/false", "%PDF-1.4", 2) ? "clean" : "rejected";';
-            $process = proc_open([PHP_BINARY, '-r', $code, GDO_PATH . 'GDO/Badger/EvidenceScanner.php', $directory],
+            $code = 'require $argv[1]; if (sys_get_temp_dir() !== $argv[2]) { echo "wrong-temp"; exit(1); } echo \\GDO\\Badger\\Service\\EvidenceScanner::scan("/usr/bin/false", "%PDF-1.4", 2) ? "clean" : "rejected";';
+            $process = proc_open([PHP_BINARY, '-r', $code, GDO_PATH . 'GDO/Badger/Service/EvidenceScanner.php', $directory],
                 [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null,
                 ['TMPDIR' => $directory]);
             self::assertIsResource($process);
@@ -97,8 +97,8 @@ final class EvidencePolicyTest extends TestCase
         {
             self::assertNotFalse(file_put_contents($scanner, "#!/bin/sh\nexec /usr/bin/sleep 10\n"));
             self::assertTrue(chmod($scanner, 0700));
-            $code = 'require $argv[1]; if (sys_get_temp_dir() !== $argv[2]) { exit(2); } try { \\GDO\\Badger\\EvidenceScanner::scan($argv[3], "%PDF-1.4", 1); echo "unexpected"; } catch (\\RuntimeException $e) { echo $e->getMessage(); }';
-            $process = proc_open([PHP_BINARY, '-r', $code, GDO_PATH . 'GDO/Badger/EvidenceScanner.php', $directory, $scanner],
+            $code = 'require $argv[1]; if (sys_get_temp_dir() !== $argv[2]) { exit(2); } try { \\GDO\\Badger\\Service\\EvidenceScanner::scan($argv[3], "%PDF-1.4", 1); echo "unexpected"; } catch (\\RuntimeException $e) { echo $e->getMessage(); }';
+            $process = proc_open([PHP_BINARY, '-r', $code, GDO_PATH . 'GDO/Badger/Service/EvidenceScanner.php', $directory, $scanner],
                 [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null,
                 ['TMPDIR' => $directory]);
             self::assertIsResource($process);

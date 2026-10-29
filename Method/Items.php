@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\ItemEquipment;
+use GDO\Badger\Service\ItemEquipment;
 use GDO\Badger\Module_Badger;
 use GDO\Avatar\GDT_Avatar;
 use GDO\Core\GDT;

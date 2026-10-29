@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\ReviewNotices;
+use GDO\Badger\Service\ReviewNotices;
 use GDO\Cronjob\MethodCronjob;
 
 final class DeliverReviewNotices extends MethodCronjob

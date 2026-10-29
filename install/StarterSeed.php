@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\install;
 
-/** Initial community-care and reading badge groups. */
+/** Initial community-care, reading and reverse-reasoning badge groups. */
 final class StarterSeed
 {
     public static function groups(): array
@@ -32,6 +32,21 @@ final class StarterSeed
                 'achievements' => [
                     'Read your first news article.',
                     'Read your first book.',
+                ],
+            ],
+            [
+                'name' => 'CBA', 'slug' => 'cba',
+                'description' => 'Learn spelling backwards. Crazily useful in math and IT.',
+                'icon' => 'cba-icon.png', 'item' => 'cba-mobius-compass.png',
+                'item_name' => 'Möbius Compass',
+                'achievements' => [
+                    ['name' => 'Spell your name backwards.', 'icon' => 'cba-letters-icon.png'],
+                    ['name' => 'Learn midpoint M and halfway down.', 'icon' => 'cba-letters-icon.png'],
+                    ['name' => 'Reverse a three-letter word.', 'icon' => 'cba-letters-icon.png'],
+                    ['name' => 'Learn from Z halfway down.', 'icon' => 'cba-letters-icon.png'],
+                    ['name' => 'Memorize remaining errors.', 'icon' => 'cba-math-icon.png',
+                        'item' => 'cba-tesseract-lantern.png', 'item_name' => 'Tesseract Lantern'],
+                    ['name' => 'Recite the alphabet backwards.', 'icon' => 'cba-math-icon.png'],
                 ],
             ],
         ];

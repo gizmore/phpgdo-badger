@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\BadgeCreation;
+use GDO\Badger\Service\BadgeCreation;
 use GDO\Badger\GDO_Badge;
 use GDO\Badger\Module_Badger;
 use GDO\Core\GDT;
@@ -25,7 +25,7 @@ final class Add extends MethodForm
         $module = Module_Badger::instance();
         $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $form->addField(GDT_HTML::make('badger_add_help')->var('<p>' . $escape(t('badger_add_help')) . '</p>'));
-        foreach (['bb_name', 'bb_description', 'bb_category', 'bb_visibility', 'bb_has_image', 'bb_xp', 'bb_hp', 'bb_str', 'bb_int'] as $field)
+        foreach (['bb_name', 'bb_description', 'bb_category', 'bb_country', 'bb_visibility', 'bb_has_image', 'bb_xp', 'bb_hp', 'bb_str', 'bb_int'] as $field)
         {
             $column = $badge->gdoColumn($field);
             if (in_array($field, ['bb_xp', 'bb_hp', 'bb_str', 'bb_int'], true))

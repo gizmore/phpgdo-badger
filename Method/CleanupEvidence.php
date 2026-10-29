@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\EvidenceCleanup;
+use GDO\Badger\Service\EvidenceCleanup;
 use GDO\Badger\Module_Badger;
 use GDO\Cronjob\MethodCronjob;
 

@@ -15,6 +15,7 @@ return [
     'list_badger_rankings' => 'Badger rankings (%s)',
     'bb_name' => 'Name',
     'bb_description' => 'Badge description',
+    'bb_country' => 'Country',
     'bb_icon' => 'Icon',
     'bb_owner' => 'Issuer',
     'bb_category' => 'Category',

@@ -2,12 +2,12 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\BadgerPermissions;
+use GDO\Badger\Service\BadgerPermissions;
 use GDO\Badger\GDO_Badge;
 use GDO\Badger\Module_Badger;
-use GDO\Badger\EvidenceVault;
-use GDO\Badger\BadgeTags;
-use GDO\Badger\AIReviewProviderFactory;
+use GDO\Badger\Service\EvidenceVault;
+use GDO\Badger\Service\BadgeTags;
+use GDO\Badger\Service\AIReviewProviderFactory;
 use GDO\Core\GDO;
 use GDO\DB\Database;
 use RuntimeException;
@@ -24,7 +24,7 @@ use GDO\UI\GDT_Link;
 
 final class Edit extends MethodForm
 {
-    private const EDITABLE_FIELDS = ['bb_name', 'bb_description', 'bb_category', 'bb_visibility', 'bb_active', 'bb_verify_staff', 'bb_staff_approvals_needed', 'bb_verify_cc', 'bb_community_approvals_needed', 'bb_verify_doc', 'bb_verify_ai', 'bb_verify_ai_doc', 'bb_approve_ai'];
+    private const EDITABLE_FIELDS = ['bb_name', 'bb_description', 'bb_category', 'bb_country', 'bb_visibility', 'bb_active', 'bb_verify_staff', 'bb_staff_approvals_needed', 'bb_verify_cc', 'bb_community_approvals_needed', 'bb_verify_doc', 'bb_verify_ai', 'bb_verify_ai_doc', 'bb_approve_ai'];
     private const ITEM_FIELDS = ['bb_item_name', 'bb_item_x', 'bb_item_y', 'bb_item_w', 'bb_item_h'];
 
     public function isGuestAllowed(): bool { return false; }

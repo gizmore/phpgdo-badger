@@ -2,11 +2,11 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\BadgerPermissions;
+use GDO\Badger\Service\BadgerPermissions;
 use GDO\Badger\GDO_Badge;
 use GDO\Badger\GDT_ItemUpload;
-use GDO\Badger\ItemImage;
-use GDO\Badger\ItemStorage;
+use GDO\Badger\Service\ItemImage;
+use GDO\Badger\Service\ItemStorage;
 use GDO\Badger\Module_Badger;
 use GDO\Core\GDT;
 use GDO\Core\GDT_Object;

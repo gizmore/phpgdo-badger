@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\BadgerPermissions;
+use GDO\Badger\Service\BadgerPermissions;
 use GDO\Badger\GDO_Badge;
 use GDO\Core\GDO;
 use GDO\Core\GDT;

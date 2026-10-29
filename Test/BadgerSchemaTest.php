@@ -39,6 +39,18 @@ final class BadgerSchemaTest extends TestCase
     public function testTablesAndVirtualTotals(): void
     {
         self::assertSame('gdo_badger_badge', GDO_Badge::table()->gdoTableName());
+        $country = GDO_Badge::table()->gdoColumn('bb_country');
+        self::assertInstanceOf(\GDO\Badger\GDT_BadgeCountry::class, $country);
+        self::assertFalse($country->notNull);
+        $country->var(null);
+        self::assertSame(t('none'), $country->renderHTML());
+        self::assertSame(t('none'), $country->renderCell());
+        self::assertNull($country->getValueSingle(''));
+        self::assertNull($country->inputToVar(''));
+        self::assertSame('DE', $country->getValueSingle('DE')->getID());
+        $country->var('??');
+        self::assertFalse($country->validate(null));
+        $country->var(null);
         self::assertSame('gdo_badger_category', GDO_Category::table()->gdoTableName());
         self::assertFalse(GDO_Category::table()->gdoColumn('bc_parent')->notNull);
         self::assertSame('gdo_badger_attest', GDO_Attest::table()->gdoTableName());

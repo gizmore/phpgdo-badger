@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\ProfileAchievements;
+use GDO\Badger\Service\ProfileAchievements;
 use GDO\Core\GDT;
 use GDO\Core\GDT_UInt;
 use GDO\Core\Method;

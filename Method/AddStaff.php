@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace GDO\Badger\Method;
 
-use GDO\Badger\BadgeStaff;
+use GDO\Badger\Service\BadgeStaff;
 use GDO\Badger\GDO_Badge;
 use GDO\Core\GDT;
 use GDO\Core\GDT_Checkbox;
